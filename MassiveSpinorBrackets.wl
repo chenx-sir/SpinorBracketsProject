@@ -8,32 +8,18 @@ mra::usage = "mra[i,I] 表示 |i^I>；mla[i,I] 表示 <i^I|。";
 mrs::usage = "mrs[i,I] 表示 |i_I]；mls[i,I] 表示 [i_I|。";
 mp::usage = "mp[i] 表示有质量动量 p_i = |i^I>[i_I|；mp[i,j,...] 表示动量和。";
 mm::usage = "mm[i] 是由 det(p_i) 定义的质量平方；mm[i,j,...] 是动量和的平方。";
-MassiveSpinorExpand::usage = "展开含 mp 的有质量 spinor 链。";
-MassiveSpinorEvaluate::usage = "MassiveSpinorEvaluate[expr,data] 用有质量 spinor 数据求值。";
-MassiveKinematicsCheck::usage = "检查有质量 spinor 数据的维数、质量壳和总动量守恒。";
+MassiveSpinorExpand::usage = "MassiveSpinorExpand[expr] 将有质量 spinor 链中的动量和展开为二旋量括号的乘积之和。";
+MassiveSpinorEvaluate::usage = "MassiveSpinorEvaluate[expr,{lambdas,lambdaTildes}] 使用给定的有质量二维 spinor 数据求值。";
+MassiveKinematicsCheck::usage = "MassiveKinematicsCheck[{lambdas,lambdaTildes}] 检查有质量 spinor 数据的维数、质量平方和总动量守恒。";
 
 Begin["`Private`"];
 
-ClearAll[scalarQ, orderedProduct];
-scalarQ[x_] :=
-    MatchQ[
-        x,
-        MassiveSpinorBrackets`mab[___] |
-        MassiveSpinorBrackets`msb[___] |
-        MassiveSpinorBrackets`masb[___] |
-        MassiveSpinorBrackets`msab[___] |
-        MassiveSpinorBrackets`mm[___]
-    ];
-orderedProduct[x_List] := Which[
-    AnyTrue[x, SameQ[#, 0] &], 0,
-    x === {}, 1,
-    Length[x] == 1, First[x],
-    And @@ (scalarQ /@ x), Times @@ x,
-    True, NonCommutativeMultiply @@ x
-];
+ClearAll[momentumSequenceQ];
+momentumSequenceQ[items_List] :=
+    MatchQ[items, {MassiveSpinorBrackets`mp[___] ...}];
 
-ClearAll[massiveSpinorEndpointQ, massiveChainMiddleQ];
-massiveSpinorEndpointQ[expr_] :=
+ClearAll[spinorEndpointQ, spinorChainMiddleQ];
+spinorEndpointQ[expr_] :=
     MatchQ[
         expr,
         MassiveSpinorBrackets`mla[_, _] |
@@ -41,8 +27,30 @@ massiveSpinorEndpointQ[expr_] :=
         MassiveSpinorBrackets`mls[_, _] |
         MassiveSpinorBrackets`mrs[_, _]
     ];
-massiveChainMiddleQ[items_List] :=
-    Length[items] > 0 && !AnyTrue[items, massiveSpinorEndpointQ];
+spinorChainMiddleQ[items_List] :=
+    !AnyTrue[items, spinorEndpointQ];
+
+ClearAll[scalarBracketQ, orderedProduct];
+scalarBracketQ[expr_] :=
+    MatchQ[
+        expr,
+        MassiveSpinorBrackets`mab[___] |
+        MassiveSpinorBrackets`msb[___] |
+        MassiveSpinorBrackets`masb[___] |
+        MassiveSpinorBrackets`msab[___]
+    ];
+orderedProduct[items_List] := Which[
+    AnyTrue[items, SameQ[#, 0] &],
+        0,
+    Length[items] == 0,
+        1,
+    Length[items] == 1,
+        First[items],
+    And @@ (scalarBracketQ /@ items),
+        Times @@ items,
+    True,
+        NonCommutativeMultiply @@ items
+];
 
 mab[i_, ii_, j_, jj_] /;
     SameQ[i, j] && SameQ[ii, jj] := 0;
@@ -116,7 +124,7 @@ mla /: HoldPattern[
         middle___,
         mra[j_, jj_]
     ]
-] /; massiveChainMiddleQ[{middle}] :=
+] /; spinorChainMiddleQ[{middle}] :=
     mab[i, ii, middle, j, jj];
 mls /: HoldPattern[
     NonCommutativeMultiply[
@@ -124,7 +132,7 @@ mls /: HoldPattern[
         middle___,
         mrs[j_, jj_]
     ]
-] /; massiveChainMiddleQ[{middle}] :=
+] /; spinorChainMiddleQ[{middle}] :=
     msb[i, ii, middle, j, jj];
 mla /: HoldPattern[
     NonCommutativeMultiply[
@@ -132,7 +140,7 @@ mla /: HoldPattern[
         middle___,
         mrs[j_, jj_]
     ]
-] /; massiveChainMiddleQ[{middle}] :=
+] /; spinorChainMiddleQ[{middle}] :=
     masb[i, ii, middle, j, jj];
 mls /: HoldPattern[
     NonCommutativeMultiply[
@@ -140,88 +148,222 @@ mls /: HoldPattern[
         middle___,
         mra[j_, jj_]
     ]
-] /; massiveChainMiddleQ[{middle}] :=
+] /; spinorChainMiddleQ[{middle}] :=
     msab[i, ii, middle, j, jj];
 
-ClearAll[momentumTermQ, expandOneMomentum];
-momentumTermQ[x_] := MatchQ[x, mp[_Integer]];
+ClearAll[angle, square, chainFactor, openFactor, expandChain];
+chainFactor[angle, {{i_, ii_}, {j_, jj_}}] :=
+    mab[i, ii, j, jj];
+chainFactor[square, {{i_, ii_}, {j_, jj_}}] :=
+    msb[i, ii, j, jj];
 
-(* The first implementation expands one momentum insertion at a time.
-   Momentum sums are distributed before this rule is applied. *)
-MassiveSpinorExpand[expr_] := FixedPoint[
-    Expand[# /. {
-        HoldPattern[masb[i_, I_, mp[k_], j_, J_]] :>
-            Sum[mab[i, I, k, K] msb[k, K, j, J], {K, 1, 2}],
-        HoldPattern[msab[i_, I_, mp[k_], j_, J_]] :>
-            Sum[msb[i, I, k, K] mab[k, K, j, J], {K, 1, 2}],
-        HoldPattern[mab[i_, I_, mp[k_], j_, J_]] :>
-            Sum[mab[i, I, k, K] msb[k, K, j, J], {K, 1, 2}],
-        HoldPattern[msb[i_, I_, mp[k_], j_, J_]] :>
-            Sum[msb[i, I, k, K] mab[k, K, j, J], {K, 1, 2}],
-        HoldPattern[mp[labels__Integer]] :> Total[mp /@ {labels}]
-    }] &, expr];
+openFactor[angle, {{i_, ii_}, {j_, jj_}}] :=
+    mla[i, ii] ** mrs[j, jj];
+openFactor[square, {{i_, ii_}, {j_, jj_}}] :=
+    mls[i, ii] ** mra[j, jj];
 
-MassiveSpinorEvaluate[expr_, data_Association] := Module[
+(* Each inserted massive momentum introduces one summed SU(2) index. *)
+expandChain[start_, end_, {i_, ii_}, momenta_List, {j_, jj_}] := Module[
     {
-        lam = Lookup[data, "Lambda"],
-        tlam = Lookup[data, "LambdaTilde"],
-        n,
-        valid,
-        pmat
+        choices,
+        terms,
+        littleGroupTerms,
+        m = Length[momenta],
+        otherType,
+        lastType,
+        pairList
     },
-    valid = ArrayQ[lam, 3] && ArrayQ[tlam, 3] &&
-        Dimensions[lam][[2 ;;]] === {2, 2} &&
-        Dimensions[tlam][[2 ;;]] === {2, 2} &&
-        Length[lam] == Length[tlam];
-    If[!valid, Return[$Failed]];
-    n = Length[lam];
-    pmat[i_Integer] :=
-        Sum[
-            Outer[Times, lam[[i, I]], tlam[[i, I]]],
-            {I, 1, 2}
-        ];
-    Expand[expr /. {
-        HoldPattern[mab[i_Integer, I_Integer, j_Integer, J_Integer]] :>
-            Det[{lam[[i, I]], lam[[j, J]]}],
-        HoldPattern[msb[i_Integer, I_Integer, j_Integer, J_Integer]] :>
-            Det[{tlam[[i, I]], tlam[[j, J]]}],
-        HoldPattern[mp[labels__Integer]] :> Total[pmat /@ {labels}],
-        HoldPattern[mm[labels__Integer]] :> Det[Total[pmat /@ {labels}]],
-        HoldPattern[mra[i_Integer, I_Integer]] :> lam[[i, I]],
-        HoldPattern[mla[i_Integer, I_Integer]] :> lam[[i, I]],
-        HoldPattern[mrs[i_Integer, I_Integer]] :> tlam[[i, I]],
-        HoldPattern[mls[i_Integer, I_Integer]] :> tlam[[i, I]]
-    }]
+    choices = List @@@ momenta;
+    If[AnyTrue[choices, EmptyQ], Return[0]];
+    terms = Tuples[choices];
+    littleGroupTerms = Tuples[Range[2], m];
+    otherType = If[start === angle, square, angle];
+    Total[
+        Function[labels,
+            Total[
+                Function[littleGroupIndices,
+                    pairList = Partition[
+                        Join[
+                            {{i, ii}},
+                            Transpose[{labels, littleGroupIndices}],
+                            {{j, jj}}
+                        ],
+                        2,
+                        1
+                    ];
+                    lastType = If[OddQ[m], otherType, start];
+                    Times[
+                        Sequence @@ MapIndexed[
+                            chainFactor[
+                                If[OddQ[First[#2]], start, otherType],
+                                #1
+                            ] &,
+                            Most[pairList]
+                        ],
+                        If[
+                            lastType === end,
+                            chainFactor[lastType, Last[pairList]],
+                            openFactor[lastType, Last[pairList]]
+                        ]
+                    ]
+                ] /@ littleGroupTerms
+            ]
+        ] /@ terms
+    ]
 ];
 
-MassiveKinematicsCheck[data_Association] := Module[
+MassiveSpinorExpand[expr_] := Expand[
+    expr /. {
+        HoldPattern[mab[i_, ii_, middle___, j_, jj_]] /;
+            Length[{middle}] > 0 && momentumSequenceQ[{middle}] :>
+          expandChain[angle, angle, {i, ii}, {middle}, {j, jj}],
+        HoldPattern[msb[i_, ii_, middle___, j_, jj_]] /;
+            Length[{middle}] > 0 && momentumSequenceQ[{middle}] :>
+          expandChain[square, square, {i, ii}, {middle}, {j, jj}],
+        HoldPattern[masb[i_, ii_, middle___, j_, jj_]] /;
+            Length[{middle}] > 0 && momentumSequenceQ[{middle}] :>
+          expandChain[angle, square, {i, ii}, {middle}, {j, jj}],
+        HoldPattern[msab[i_, ii_, middle___, j_, jj_]] /;
+            Length[{middle}] > 0 && momentumSequenceQ[{middle}] :>
+          expandChain[square, angle, {i, ii}, {middle}, {j, jj}]
+    }
+] /. HoldPattern[NonCommutativeMultiply[___, 0, ___]] :> 0;
+
+ClearAll[det2, outer2, massiveMomentum];
+det2[u_List, v_List] /; Length[u] == Length[v] == 2 :=
+    Det[{u, v}];
+outer2[u_List, v_List] /; Length[u] == Length[v] == 2 :=
+    Outer[Times, u, v];
+massiveMomentum[lambdas_List, lambdaTildes_List, i_Integer] :=
+    Total[MapThread[outer2, {lambdas[[i]], lambdaTildes[[i]]}]];
+
+MassiveSpinorEvaluate::data = "需要两组长度相同的有质量二维 spinor 列表，但收到的是 `1`。";
+MassiveSpinorEvaluate[
+    expr_,
+    {lambdas_List, lambdaTildes_List}
+] := Module[
+    {n = Length[lambdas], validDimensions, expanded},
+    validDimensions =
+        Length[lambdaTildes] == n &&
+        And @@ (
+            MatchQ[#, {{_, _}, {_, _}}] & /@
+                Join[lambdas, lambdaTildes]
+        );
+    If[
+        !validDimensions,
+        Message[
+            MassiveSpinorEvaluate::data,
+            {lambdas, lambdaTildes}
+        ];
+        Return[$Failed]
+    ];
+    expanded = MassiveSpinorExpand[expr];
+    expanded /. {
+        HoldPattern[mab[i_Integer, ii_Integer, j_Integer, jj_Integer]] /;
+            1 <= i <= n && 1 <= j <= n &&
+                1 <= ii <= 2 && 1 <= jj <= 2 :>
+          det2[lambdas[[i, ii]], lambdas[[j, jj]]],
+        HoldPattern[msb[i_Integer, ii_Integer, j_Integer, jj_Integer]] /;
+            1 <= i <= n && 1 <= j <= n &&
+                1 <= ii <= 2 && 1 <= jj <= 2 :>
+          det2[lambdaTildes[[i, ii]], lambdaTildes[[j, jj]]],
+        HoldPattern[mp[labels___Integer]] /;
+            And @@ Thread[1 <= {labels} <= n] :>
+          Total[
+              massiveMomentum[lambdas, lambdaTildes, #] & /@ {labels}
+          ],
+        HoldPattern[mm[labels__Integer]] /;
+            And @@ Thread[1 <= {labels} <= n] :>
+          Det[
+              Total[
+                  massiveMomentum[lambdas, lambdaTildes, #] & /@
+                      {labels}
+              ]
+          ],
+        HoldPattern[mra[i_Integer, ii_Integer]] /;
+            1 <= i <= n && 1 <= ii <= 2 :>
+          lambdas[[i, ii]],
+        HoldPattern[mla[i_Integer, ii_Integer]] /;
+            1 <= i <= n && 1 <= ii <= 2 :>
+          lambdas[[i, ii]],
+        HoldPattern[mrs[i_Integer, ii_Integer]] /;
+            1 <= i <= n && 1 <= ii <= 2 :>
+          lambdaTildes[[i, ii]],
+        HoldPattern[mls[i_Integer, ii_Integer]] /;
+            1 <= i <= n && 1 <= ii <= 2 :>
+          lambdaTildes[[i, ii]]
+    }
+];
+
+MassiveSpinorEvaluate[expr_, data_Association] := With[
     {
-        lam = Lookup[data, "Lambda"],
-        tlam = Lookup[data, "LambdaTilde"],
-        momenta,
-        total
+        lambdas = Lookup[data, "Lambda", Missing["NotAvailable"]],
+        lambdaTildes =
+            Lookup[data, "LambdaTilde", Missing["NotAvailable"]]
     },
-    If[!ArrayQ[lam, 3] || !ArrayQ[tlam, 3] ||
-        Dimensions[lam][[2 ;;]] =!= {2, 2} ||
-        Dimensions[tlam][[2 ;;]] =!= {2, 2} ||
-        Length[lam] =!= Length[tlam],
-       Return[<|"ValidDimensions" -> False|>]
+    If[
+        ListQ[lambdas] && ListQ[lambdaTildes],
+        MassiveSpinorEvaluate[expr, {lambdas, lambdaTildes}],
+        Message[MassiveSpinorEvaluate::data, data];
+        $Failed
+    ]
+];
+
+MassiveKinematicsCheck[
+    {lambdas_List, lambdaTildes_List}
+] := Module[
+    {sameLength, twoLittleGroupSpinors, momenta, massSquared, total},
+    sameLength = Length[lambdas] == Length[lambdaTildes];
+    twoLittleGroupSpinors =
+        And @@ (
+            MatchQ[#, {{_, _}, {_, _}}] & /@
+                Join[lambdas, lambdaTildes]
+        );
+    If[
+        !sameLength || !twoLittleGroupSpinors,
+        Return[
+            <|
+                "ValidDimensions" -> False,
+                "OnShell" -> False,
+                "MomentumConserving" -> False
+            |>
+        ]
     ];
     momenta = Table[
-        Sum[
-            Outer[Times, lam[[i, I]], tlam[[i, I]]],
-            {I, 1, 2}
-        ],
-        {i, Length[lam]}
+        massiveMomentum[lambdas, lambdaTildes, i],
+        {i, Length[lambdas]}
     ];
+    massSquared = Simplify[Det /@ momenta];
     total = Total[momenta];
     <|
         "ValidDimensions" -> True,
-        "MassSquared" -> (Det /@ momenta),
-        "TotalMomentum" -> total,
+        "OnShell" ->
+            And @@ MapThread[
+                TrueQ[Simplify[Det[#1] == #2]] &,
+                {momenta, massSquared}
+            ],
+        "MassSquared" -> massSquared,
+        "TotalMomentum" -> Simplify[total],
         "MomentumConserving" ->
-            TrueQ[FullSimplify[total == ConstantArray[0, {2, 2}]]]
+            And @@ (TrueQ[Simplify[# == 0]] & /@ Flatten[total])
     |>
+];
+
+MassiveKinematicsCheck[data_Association] := With[
+    {
+        lambdas = Lookup[data, "Lambda", Missing["NotAvailable"]],
+        lambdaTildes =
+            Lookup[data, "LambdaTilde", Missing["NotAvailable"]]
+    },
+    If[
+        ListQ[lambdas] && ListQ[lambdaTildes],
+        MassiveKinematicsCheck[{lambdas, lambdaTildes}],
+        <|
+            "ValidDimensions" -> False,
+            "OnShell" -> False,
+            "MomentumConserving" -> False
+        |>
+    ]
 ];
 
 End[];
