@@ -111,17 +111,17 @@ expandChain[start_, end_, i_, momenta_List, j_] := Module[
     Total[
         Function[labels,
             pairList = Partition[
-                Join[{i}, labels, {j}],
+                Join[{i}, labels, {j}], 
                 2,
                 1
             ]; (*将labels与{i}和{j}连接起来，然后按2个一组进行分割*)
-            lastType = If[
-                OddQ[m], (*交替规则，和tree_amplitude的定义一样*)
+            lastType = If[ (*交替规则，和tree_amplitude的定义一样*)
+                OddQ[m], 
                 If[start === Angle, Square, Angle],
                 start
             ];
             Times[
-                Sequence @@ MapIndexed[
+                Sequence @@ MapIndexed[ (*对Most[pairList]中的每个元素应用chainFactor*)
                     chainFactor[
                         If[
                             OddQ[First[#2]],
@@ -129,8 +129,8 @@ expandChain[start_, end_, i_, momenta_List, j_] := Module[
                             If[start === Angle, Square, Angle]
                         ],
                         #1
-                    ] &,
-                    Most[pairList]
+                    ] &, (*变成匿名函数，#1是列表，#2是索引*)
+                    Most[pairList] (*去掉最后一个元素*)(*pairlist是分割后的列表*)
                 ],
                 If[
                     lastType === end,
@@ -142,7 +142,7 @@ expandChain[start_, end_, i_, momenta_List, j_] := Module[
     ]
 ];
 
-SpinorExpand[expr_] := Expand[
+SpinorExpand[expr_] := Expand[ (*mam内置函数，用于展开一般表达式*)
     expr /. {
         HoldPattern[ab[i_, middle___, j_]] /;
             Length[{middle}] > 0 && momentumSequenceQ[{middle}] :>
@@ -161,15 +161,15 @@ SpinorExpand[expr_] := Expand[
 
 MandelstamExpand[expr_] := Expand[
     expr /. HoldPattern[s[labels__]] :>
-        Total[
+        Total[ (*加法*)
             (ab[First[#], Last[#]] sb[First[#], Last[#]]) & /@
-                Subsets[{labels}, {2}]
+                Subsets[{labels}, {2}] (*生成所有包含两个元素的子集*)
         ]
 ];
 
 ClearAll[canonicalStep];
-canonicalStep[expr_] := expr /. {
-    HoldPattern[p[labels___]] /; !OrderedQ[{labels}] :>
+canonicalStep[expr_] := expr /. { (*转换成标准排序（1，2，3，4，5）*)
+    HoldPattern[p[labels___]] /; !OrderedQ[{labels}] :> (*将p[labels]中的labels排序，如果不是有序的就进行排序*)
         p @@ Sort[{labels}],
     HoldPattern[s[labels___]] /; !OrderedQ[{labels}] :>
         s @@ Sort[{labels}],
@@ -187,11 +187,11 @@ canonicalStep[expr_] := expr /. {
         -sb[j, Sequence @@ Reverse[{middle}], i]
 };
 
-SpinorCanonicalize[expr_] := FixedPoint[canonicalStep, expr];
+SpinorCanonicalize[expr_] := FixedPoint[canonicalStep, expr]; (*反复规范化，直到结果不变*)
 
-SpinorSimplify[expr_] :=
+SpinorSimplify[expr_] :=    (*化简*)
     Factor @ Together @ SpinorCanonicalize @
-        Expand @ SpinorExpand @ MandelstamExpand[expr];
+        Expand @ SpinorExpand @ MandelstamExpand[expr]; 
 
 ClearAll[validMomentumSubsetQ, eliminateMomentumOnce];
 validMomentumSubsetQ[labels_List, n_Integer] :=
@@ -202,7 +202,7 @@ validMomentumSubsetQ[labels_List, n_Integer] :=
 eliminateMomentumOnce[expr_, n_Integer, leg_Integer] := expr /. {
     HoldPattern[ab[i_, before___, p[labels___], after___, j_]] /;
         validMomentumSubsetQ[{labels}, n] && MemberQ[{labels}, leg] :>
-          -ab[i, before, p @@ Complement[Range[n], {labels}], after, j],
+          -ab[i, before, p @@ Complement[Range[n], {labels}], after, j], (*complement是求补集的函数*)
     HoldPattern[sb[i_, before___, p[labels___], after___, j_]] /;
         validMomentumSubsetQ[{labels}, n] && MemberQ[{labels}, leg] :>
           -sb[i, before, p @@ Complement[Range[n], {labels}], after, j],
@@ -222,11 +222,12 @@ eliminateMomentumOnce[expr_, n_Integer, leg_Integer] := expr /. {
 
 MomentumConserve[expr_, n_Integer, leg_Integer] /; 1 <= leg <= n :=
     SpinorCanonicalize[
-        FixedPoint[eliminateMomentumOnce[#, n, leg] &, expr]
+        FixedPoint[eliminateMomentumOnce[#, n, leg] &, expr] (*expr不变，每次都接受上次的结果*)
     ];
-MomentumConserve[expr_, n_Integer] :=
+MomentumConserve[expr_, n_Integer] := (*不指定就默认处理最后一个腿*)
     MomentumConserve[expr, n, n];
 
+(*schouten恒等式*)
 SchoutenIdentity[Angle, a_, b_, c_, d_] :=
     ab[a, b] ab[c, d] +
     ab[a, c] ab[d, b] +
@@ -243,7 +244,8 @@ SchoutenRule[Square, a_, b_, c_, d_] :=
     HoldPattern[sb[a, b] sb[c, d]] :>
     -sb[a, c] sb[d, b] - sb[a, d] sb[b, c];
 
-ParityConjugate[expr_] := expr /. {
+(*交换尖括号和方括号*)
+ParityConjugate[expr_] := expr /. { 
     ab -> sb, sb -> ab,
     ra -> rs, rs -> ra,
     la -> ls, ls -> la,
@@ -259,7 +261,7 @@ BCFWShift[expr_, {a_, b_}, z_: z] :=
                     ab[i, j] +
                     If[SameQ[i, b], z ab[a, j], 0] +
                     If[SameQ[j, b], z ab[i, a], 0] +
-                    If[SameQ[i, b] && SameQ[j, b], z^2 ab[a, a], 0],
+                    If[SameQ[i, b] && SameQ[j, b], z^2 ab[a, a], 0], (*其实这一项是0，可以不写，但是为了代码的完整性还是加上了，但是我感觉删了也一样，无所谓了*)
                 HoldPattern[sb[i_, j_]] :>
                     sb[i, j] -
                     If[SameQ[i, a], z sb[b, j], 0] -
@@ -278,19 +280,20 @@ BCFWShift[expr_, {a_, b_}, z_: z] :=
     ];
 
 ClearAll[det2, outer2];
-det2[u_List, v_List] /; Length[u] == Length[v] == 2 := Det[{u, v}];
+det2[u_List, v_List] /; Length[u] == Length[v] == 2 := Det[{u, v}]; (*计算u,v横向排列的行列式*)
 outer2[u_List, v_List] /; Length[u] == Length[v] == 2 :=
-    Outer[Times, u, v];
+    Outer[Times, u, v]; (*计算u,v的外积，得到一个2x2矩阵*)
 
+(*计算具体的数值*)
 SpinorEvaluate::data = "需要两组长度相同的二维 spinor 列表，但收到的是 `1`。";
 SpinorEvaluate[expr_, {lambdas_List, lambdaTildes_List}] := Module[
     {n = Length[lambdas], expanded},
     If[
         Length[lambdaTildes] =!= n ||
-            !And @@ (MatchQ[#, {_, _}] & /@
+            !And @@ (MatchQ[#, {_, _}] & /@ (*检查每个元素是不是都是2维向量*)
                 Join[lambdas, lambdaTildes]),
         Message[SpinorEvaluate::data, {lambdas, lambdaTildes}];
-        Return[$Failed]
+        Return[$Failed](*错误直接返回*)
     ];
     expanded = SpinorExpand @ MandelstamExpand[expr];
     expanded /. {
@@ -301,7 +304,7 @@ SpinorEvaluate[expr_, {lambdas_List, lambdaTildes_List}] := Module[
             1 <= i <= n && 1 <= j <= n :>
           det2[lambdaTildes[[i]], lambdaTildes[[j]]],
         HoldPattern[p[labels___Integer]] /;
-            And @@ Thread[1 <= {labels} <= n] :>
+            And @@ Thread[1 <= {labels} <= n] :> (*thread是分配函数，就是把labels中的每个元素都应用到判断是否在1，n之间*)
           Total[outer2[lambdas[[#]], lambdaTildes[[#]]] & /@ {labels}],
         la[i_Integer] /; 1 <= i <= n :>
             lambdas[[i]],
@@ -314,6 +317,8 @@ SpinorEvaluate[expr_, {lambdas_List, lambdaTildes_List}] := Module[
     }
 ];
 
+
+(*检查合法性，不合法的拉去枪毙，以及总动量是否守恒*)
 SpinorKinematicsCheck[{lambdas_List, lambdaTildes_List}] := Module[
     {sameLength, twoComponent, momenta, total},
     sameLength = Length[lambdas] == Length[lambdaTildes];
@@ -330,17 +335,19 @@ SpinorKinematicsCheck[{lambdas_List, lambdaTildes_List}] := Module[
             |>
         ]
     ];
-    momenta = MapThread[outer2, {lambdas, lambdaTildes}];
+    momenta = MapThread[outer2, {lambdas, lambdaTildes}]; (*MapThread 会把两个列表中相同位置的元素配对，然后调用 outer2*)
     total = Total[momenta];
     <|
-        "ValidDimensions" -> True,
-        "OnShell" ->
+        "ValidDimensions" -> True, (*维数是否合法*)
+        "OnShell" ->    (*是否在壳上*)
             And @@ (TrueQ[Simplify[Det[#] == 0]] & /@ momenta),
-        "TotalMomentum" -> Simplify[total],
-        "MomentumConserving" ->
-            And @@ (TrueQ[Simplify[# == 0]] & /@ Flatten[total])
+        "TotalMomentum" -> Simplify[total], (*返回总动量*)
+        "MomentumConserving" -> (*是否守恒*)
+            And @@ (TrueQ[Simplify[# == 0]] & /@ Flatten[total]) (*Flatten把嵌套的列表展开成一维列表*)
     |>
 ];
+
+(*----------以下代码控制显示格式，与计算过程无关，可以完全用ai写，我感觉不是很重要----------*)
 
 ClearAll[rawCallBoxes, interpretedBoxes, bracketBoxes, chainBoxes, spinorBoxes];
 
