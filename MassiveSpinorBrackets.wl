@@ -44,6 +44,105 @@ massiveSpinorEndpointQ[expr_] :=
 massiveChainMiddleQ[items_List] :=
     Length[items] > 0 && !AnyTrue[items, massiveSpinorEndpointQ];
 
+mab[i_, ii_, j_, jj_] /;
+    SameQ[i, j] && SameQ[ii, jj] := 0;
+msb[i_, ii_, j_, jj_] /;
+    SameQ[i, j] && SameQ[ii, jj] := 0;
+
+mla /: HoldPattern[
+    NonCommutativeMultiply[
+        pre___,
+        mla[i_, ii_],
+        mra[j_, jj_],
+        post___
+    ]
+] :=
+    orderedProduct[
+        {
+            pre,
+            mab[i, ii, j, jj],
+            post
+        }
+    ];
+mls /: HoldPattern[
+    NonCommutativeMultiply[
+        pre___,
+        mls[i_, ii_],
+        mrs[j_, jj_],
+        post___
+    ]
+] :=
+    orderedProduct[
+        {
+            pre,
+            msb[i, ii, j, jj],
+            post
+        }
+    ];
+mla /: HoldPattern[
+    NonCommutativeMultiply[
+        pre___,
+        mla[i_, ii_],
+        mrs[j_, jj_],
+        post___
+    ]
+] :=
+    orderedProduct[
+        {
+            pre,
+            masb[i, ii, j, jj],
+            post
+        }
+    ];
+mls /: HoldPattern[
+    NonCommutativeMultiply[
+        pre___,
+        mls[i_, ii_],
+        mra[j_, jj_],
+        post___
+    ]
+] :=
+    orderedProduct[
+        {
+            pre,
+            msab[i, ii, j, jj],
+            post
+        }
+    ];
+
+mla /: HoldPattern[
+    NonCommutativeMultiply[
+        mla[i_, ii_],
+        middle___,
+        mra[j_, jj_]
+    ]
+] /; massiveChainMiddleQ[{middle}] :=
+    mab[i, ii, middle, j, jj];
+mls /: HoldPattern[
+    NonCommutativeMultiply[
+        mls[i_, ii_],
+        middle___,
+        mrs[j_, jj_]
+    ]
+] /; massiveChainMiddleQ[{middle}] :=
+    msb[i, ii, middle, j, jj];
+mla /: HoldPattern[
+    NonCommutativeMultiply[
+        mla[i_, ii_],
+        middle___,
+        mrs[j_, jj_]
+    ]
+] /; massiveChainMiddleQ[{middle}] :=
+    masb[i, ii, middle, j, jj];
+mls /: HoldPattern[
+    NonCommutativeMultiply[
+        mls[i_, ii_],
+        middle___,
+        mra[j_, jj_]
+    ]
+] /; massiveChainMiddleQ[{middle}] :=
+    msab[i, ii, middle, j, jj];
+
 ClearAll[momentumTermQ, expandOneMomentum];
 momentumTermQ[x_] := MatchQ[x, mp[_Integer]];
 
@@ -126,105 +225,6 @@ MassiveKinematicsCheck[data_Association] := Module[
 ];
 
 End[];
-
-MassiveSpinorBrackets`mab[i_, ii_, j_, jj_] /;
-    SameQ[i, j] && SameQ[ii, jj] := 0;
-MassiveSpinorBrackets`msb[i_, ii_, j_, jj_] /;
-    SameQ[i, j] && SameQ[ii, jj] := 0;
-
-MassiveSpinorBrackets`mla /: HoldPattern[
-    NonCommutativeMultiply[
-        pre___,
-        MassiveSpinorBrackets`mla[i_, ii_],
-        MassiveSpinorBrackets`mra[j_, jj_],
-        post___
-    ]
-] :=
-    MassiveSpinorBrackets`Private`orderedProduct[
-        {
-            pre,
-            MassiveSpinorBrackets`mab[i, ii, j, jj],
-            post
-        }
-    ];
-MassiveSpinorBrackets`mls /: HoldPattern[
-    NonCommutativeMultiply[
-        pre___,
-        MassiveSpinorBrackets`mls[i_, ii_],
-        MassiveSpinorBrackets`mrs[j_, jj_],
-        post___
-    ]
-] :=
-    MassiveSpinorBrackets`Private`orderedProduct[
-        {
-            pre,
-            MassiveSpinorBrackets`msb[i, ii, j, jj],
-            post
-        }
-    ];
-MassiveSpinorBrackets`mla /: HoldPattern[
-    NonCommutativeMultiply[
-        pre___,
-        MassiveSpinorBrackets`mla[i_, ii_],
-        MassiveSpinorBrackets`mrs[j_, jj_],
-        post___
-    ]
-] :=
-    MassiveSpinorBrackets`Private`orderedProduct[
-        {
-            pre,
-            MassiveSpinorBrackets`masb[i, ii, j, jj],
-            post
-        }
-    ];
-MassiveSpinorBrackets`mls /: HoldPattern[
-    NonCommutativeMultiply[
-        pre___,
-        MassiveSpinorBrackets`mls[i_, ii_],
-        MassiveSpinorBrackets`mra[j_, jj_],
-        post___
-    ]
-] :=
-    MassiveSpinorBrackets`Private`orderedProduct[
-        {
-            pre,
-            MassiveSpinorBrackets`msab[i, ii, j, jj],
-            post
-        }
-    ];
-
-MassiveSpinorBrackets`mla /: HoldPattern[
-    NonCommutativeMultiply[
-        MassiveSpinorBrackets`mla[i_, ii_],
-        middle___,
-        MassiveSpinorBrackets`mra[j_, jj_]
-    ]
-] /; MassiveSpinorBrackets`Private`massiveChainMiddleQ[{middle}] :=
-    MassiveSpinorBrackets`mab[i, ii, middle, j, jj];
-MassiveSpinorBrackets`mls /: HoldPattern[
-    NonCommutativeMultiply[
-        MassiveSpinorBrackets`mls[i_, ii_],
-        middle___,
-        MassiveSpinorBrackets`mrs[j_, jj_]
-    ]
-] /; MassiveSpinorBrackets`Private`massiveChainMiddleQ[{middle}] :=
-    MassiveSpinorBrackets`msb[i, ii, middle, j, jj];
-MassiveSpinorBrackets`mla /: HoldPattern[
-    NonCommutativeMultiply[
-        MassiveSpinorBrackets`mla[i_, ii_],
-        middle___,
-        MassiveSpinorBrackets`mrs[j_, jj_]
-    ]
-] /; MassiveSpinorBrackets`Private`massiveChainMiddleQ[{middle}] :=
-    MassiveSpinorBrackets`masb[i, ii, middle, j, jj];
-MassiveSpinorBrackets`mls /: HoldPattern[
-    NonCommutativeMultiply[
-        MassiveSpinorBrackets`mls[i_, ii_],
-        middle___,
-        MassiveSpinorBrackets`mra[j_, jj_]
-    ]
-] /; MassiveSpinorBrackets`Private`massiveChainMiddleQ[{middle}] :=
-    MassiveSpinorBrackets`msab[i, ii, middle, j, jj];
 
 Protect[mab, msb, masb, msab, mra, mla, mrs, mls, mp, mm];
 EndPackage[];
