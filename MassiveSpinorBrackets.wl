@@ -16,7 +16,14 @@ Begin["`Private`"];
 
 ClearAll[scalarQ, orderedProduct];
 scalarQ[x_] :=
-    MatchQ[x, mab[___] | msb[___] | masb[___] | msab[___] | mm[___]];
+    MatchQ[
+        x,
+        MassiveSpinorBrackets`mab[___] |
+        MassiveSpinorBrackets`msb[___] |
+        MassiveSpinorBrackets`masb[___] |
+        MassiveSpinorBrackets`msab[___] |
+        MassiveSpinorBrackets`mm[___]
+    ];
 orderedProduct[x_List] := Which[
     AnyTrue[x, SameQ[#, 0] &], 0,
     x === {}, 1,
@@ -25,56 +32,17 @@ orderedProduct[x_List] := Which[
     True, NonCommutativeMultiply @@ x
 ];
 
-ClearAll[contract];
-contract[mla[i_, I_], mra[j_, J_]] := mab[i, I, j, J];
-contract[mls[i_, I_], mrs[j_, J_]] := msb[i, I, j, J];
-contract[mla[i_, I_], mrs[j_, J_]] := masb[i, I, j, J];
-contract[mls[i_, I_], mra[j_, J_]] := msab[i, I, j, J];
-
-mab[i_, I_, j_, J_] /;
-    SameQ[i, j] && SameQ[I, J] := 0;
-msb[i_, I_, j_, J_] /;
-    SameQ[i, j] && SameQ[I, J] := 0;
-
-mla /: HoldPattern[
-    NonCommutativeMultiply[pre___, x_mla, y_mra, post___]
-] :=
-    orderedProduct[{pre, contract[x, y], post}];
-mls /: HoldPattern[
-    NonCommutativeMultiply[pre___, x_mls, y_mrs, post___]
-] :=
-    orderedProduct[{pre, contract[x, y], post}];
-mla /: HoldPattern[
-    NonCommutativeMultiply[pre___, x_mla, y_mrs, post___]
-] :=
-    orderedProduct[{pre, contract[x, y], post}];
-mls /: HoldPattern[
-    NonCommutativeMultiply[pre___, x_mls, y_mra, post___]
-] :=
-    orderedProduct[{pre, contract[x, y], post}];
-
 ClearAll[massiveSpinorEndpointQ, massiveChainMiddleQ];
 massiveSpinorEndpointQ[expr_] :=
-    MatchQ[expr, mla[_, _] | mra[_, _] | mls[_, _] | mrs[_, _]];
+    MatchQ[
+        expr,
+        MassiveSpinorBrackets`mla[_, _] |
+        MassiveSpinorBrackets`mra[_, _] |
+        MassiveSpinorBrackets`mls[_, _] |
+        MassiveSpinorBrackets`mrs[_, _]
+    ];
 massiveChainMiddleQ[items_List] :=
     Length[items] > 0 && !AnyTrue[items, massiveSpinorEndpointQ];
-
-mla /: HoldPattern[
-    NonCommutativeMultiply[mla[i_, ii_], middle___, mra[j_, jj_]]
-] /; massiveChainMiddleQ[{middle}] :=
-    mab[i, ii, middle, j, jj];
-mls /: HoldPattern[
-    NonCommutativeMultiply[mls[i_, ii_], middle___, mrs[j_, jj_]]
-] /; massiveChainMiddleQ[{middle}] :=
-    msb[i, ii, middle, j, jj];
-mla /: HoldPattern[
-    NonCommutativeMultiply[mla[i_, ii_], middle___, mrs[j_, jj_]]
-] /; massiveChainMiddleQ[{middle}] :=
-    masb[i, ii, middle, j, jj];
-mls /: HoldPattern[
-    NonCommutativeMultiply[mls[i_, ii_], middle___, mra[j_, jj_]]
-] /; massiveChainMiddleQ[{middle}] :=
-    msab[i, ii, middle, j, jj];
 
 ClearAll[momentumTermQ, expandOneMomentum];
 momentumTermQ[x_] := MatchQ[x, mp[_Integer]];
@@ -83,22 +51,6 @@ momentumTermQ[x_] := MatchQ[x, mp[_Integer]];
    Momentum sums are distributed before this rule is applied. *)
 MassiveSpinorExpand[expr_] := FixedPoint[
     Expand[# /. {
-        HoldPattern[
-            NonCommutativeMultiply[mla[i_, ii_], middle___, mra[j_, jj_]]
-        ] /; massiveChainMiddleQ[{middle}] :>
-            mab[i, ii, middle, j, jj],
-        HoldPattern[
-            NonCommutativeMultiply[mls[i_, ii_], middle___, mrs[j_, jj_]]
-        ] /; massiveChainMiddleQ[{middle}] :>
-            msb[i, ii, middle, j, jj],
-        HoldPattern[
-            NonCommutativeMultiply[mla[i_, ii_], middle___, mrs[j_, jj_]]
-        ] /; massiveChainMiddleQ[{middle}] :>
-            masb[i, ii, middle, j, jj],
-        HoldPattern[
-            NonCommutativeMultiply[mls[i_, ii_], middle___, mra[j_, jj_]]
-        ] /; massiveChainMiddleQ[{middle}] :>
-            msab[i, ii, middle, j, jj],
         HoldPattern[masb[i_, I_, mp[k_], j_, J_]] :>
             Sum[mab[i, I, k, K] msb[k, K, j, J], {K, 1, 2}],
         HoldPattern[msab[i_, I_, mp[k_], j_, J_]] :>
