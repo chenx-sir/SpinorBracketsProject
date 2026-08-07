@@ -12,6 +12,7 @@ MassiveEpsilon::usage = "MassiveEpsilon[I,J] 是 SU(2) little-group 的 epsilon 
 MassiveSpinorExpand::usage = "MassiveSpinorExpand[expr] 将有质量 spinor 链中的动量和展开为二旋量括号的乘积之和。";
 MassiveSpinorEvaluate::usage = "MassiveSpinorEvaluate[expr,{lambdas,lambdaTildes}] 使用给定的有质量二维 spinor 数据求值。";
 MassiveKinematicsCheck::usage = "MassiveKinematicsCheck[{lambdas,lambdaTildes}] 检查有质量 spinor 数据的维数、质量平方和总动量守恒；MassiveKinematicsCheck[{lambdas,lambdaTildes},masses] 另外检查给定质量的质壳条件。";
+SpinorForm::usage = "SpinorForm[expr] 使用 TraditionalForm 显示有质量 spinor 表达式。";
 
 Begin["`Private`"];
 
@@ -335,6 +336,259 @@ MassiveKinematicsCheck[data_Association, masses_List] := With[
         |>
     ]
 ];
+
+(*----------以下代码控制显示格式，与计算过程无关----------*)
+
+ClearAll[
+    rawCallBoxes,
+    interpretedBoxes,
+    massiveIndexBox,
+    massiveBracketBoxes,
+    massiveChainBoxes,
+    massiveMixedChainBoxes,
+    massiveSpinorBoxes
+];
+
+rawCallBoxes[head_String, args_List, form_] :=
+    RowBox[
+        {
+            head,
+            "[",
+            RowBox[Riffle[MakeBoxes[#, form] & /@ args, ","]],
+            "]"
+        }
+    ];
+
+SetAttributes[interpretedBoxes, HoldRest];
+interpretedBoxes[display_, expr_] :=
+    InterpretationBox[display, expr];
+
+massiveIndexBox[i_, ii_, position_, form_] :=
+    If[
+        position === Upper,
+        SuperscriptBox[MakeBoxes[i, form], MakeBoxes[ii, form]],
+        SubscriptBox[MakeBoxes[i, form], MakeBoxes[ii, form]]
+    ];
+
+massiveBracketBoxes[left_, right_, i_, ii_, j_, jj_, form_] :=
+    RowBox[
+        {
+            left,
+            massiveIndexBox[i, ii, Upper, form],
+            "\[ThinSpace]",
+            massiveIndexBox[j, jj, Upper, form],
+            right
+        }
+    ];
+
+massiveChainBoxes[
+    left_, right_, i_, ii_, middle_List, j_, jj_, firstPosition_,
+    lastPosition_, form_
+] :=
+    RowBox[
+        {
+            left,
+            massiveIndexBox[i, ii, firstPosition, form],
+            "|",
+            RowBox[
+                Riffle[
+                    MakeBoxes[#, form] & /@ middle,
+                    "\[CenterDot]"
+                ]
+            ],
+            "|",
+            massiveIndexBox[j, jj, lastPosition, form],
+            right
+        }
+    ];
+
+massiveMixedChainBoxes[
+    left_, right_, i_, ii_, middle_List, j_, jj_, firstPosition_,
+    lastPosition_, form_
+] :=
+    RowBox[
+        {
+            left,
+            massiveIndexBox[i, ii, firstPosition, form],
+            "\[ThinSpace]",
+            RowBox[
+                Riffle[
+                    MakeBoxes[#, form] & /@ middle,
+                    "\[CenterDot]"
+                ]
+            ],
+            "\[ThinSpace]",
+            massiveIndexBox[j, jj, lastPosition, form],
+            right
+        }
+    ];
+
+massiveSpinorBoxes[mab, {i_, ii_, j_, jj_}, form_] :=
+    massiveBracketBoxes[
+        "\[LeftAngleBracket]",
+        "\[RightAngleBracket]",
+        i,
+        ii,
+        j,
+        jj,
+        form
+    ];
+massiveSpinorBoxes[msb, {i_, ii_, j_, jj_}, form_] :=
+    RowBox[
+        {
+            "[",
+            massiveIndexBox[i, ii, Lower, form],
+            "\[ThinSpace]",
+            massiveIndexBox[j, jj, Lower, form],
+            "]"
+        }
+    ];
+massiveSpinorBoxes[mab, {i_, ii_, middle___, j_, jj_}, form_] :=
+    massiveChainBoxes[
+        "\[LeftAngleBracket]",
+        "\[RightAngleBracket]",
+        i,
+        ii,
+        {middle},
+        j,
+        jj,
+        Upper,
+        Upper,
+        form
+    ];
+massiveSpinorBoxes[msb, {i_, ii_, middle___, j_, jj_}, form_] :=
+    massiveChainBoxes[
+        "[",
+        "]",
+        i,
+        ii,
+        {middle},
+        j,
+        jj,
+        Lower,
+        Lower,
+        form
+    ];
+massiveSpinorBoxes[masb, {i_, ii_, middle___, j_, jj_}, form_] :=
+    massiveMixedChainBoxes[
+        "\[LeftAngleBracket]",
+        "]",
+        i,
+        ii,
+        {middle},
+        j,
+        jj,
+        Upper,
+        Lower,
+        form
+    ];
+massiveSpinorBoxes[msab, {i_, ii_, middle___, j_, jj_}, form_] :=
+    massiveMixedChainBoxes[
+        "[",
+        "\[RightAngleBracket]",
+        i,
+        ii,
+        {middle},
+        j,
+        jj,
+        Lower,
+        Upper,
+        form
+    ];
+massiveSpinorBoxes[head_, args_List, form_] :=
+    rawCallBoxes[SymbolName[Unevaluated[head]], args, form];
+
+mab /: MakeBoxes[
+    mab[args___],
+    form : (StandardForm | TraditionalForm)
+] :=
+    interpretedBoxes[
+        massiveSpinorBoxes[mab, {args}, form],
+        mab[args]
+    ];
+msb /: MakeBoxes[
+    msb[args___],
+    form : (StandardForm | TraditionalForm)
+] :=
+    interpretedBoxes[
+        massiveSpinorBoxes[msb, {args}, form],
+        msb[args]
+    ];
+masb /: MakeBoxes[
+    masb[args___],
+    form : (StandardForm | TraditionalForm)
+] :=
+    interpretedBoxes[
+        massiveSpinorBoxes[masb, {args}, form],
+        masb[args]
+    ];
+msab /: MakeBoxes[
+    msab[args___],
+    form : (StandardForm | TraditionalForm)
+] :=
+    interpretedBoxes[
+        massiveSpinorBoxes[msab, {args}, form],
+        msab[args]
+    ];
+
+mra /: MakeBoxes[
+    mra[i_, ii_],
+    form : (StandardForm | TraditionalForm)
+] :=
+    interpretedBoxes[
+        RowBox[
+            {
+                "|",
+                massiveIndexBox[i, ii, Upper, form],
+                "\[RightAngleBracket]"
+            }
+        ],
+        mra[i, ii]
+    ];
+mla /: MakeBoxes[
+    mla[i_, ii_],
+    form : (StandardForm | TraditionalForm)
+] :=
+    interpretedBoxes[
+        RowBox[
+            {
+                "\[LeftAngleBracket]",
+                massiveIndexBox[i, ii, Upper, form],
+                "|"
+            }
+        ],
+        mla[i, ii]
+    ];
+mrs /: MakeBoxes[
+    mrs[i_, ii_],
+    form : (StandardForm | TraditionalForm)
+] :=
+    interpretedBoxes[
+        RowBox[
+            {
+                "|",
+                massiveIndexBox[i, ii, Lower, form],
+                "]"
+            }
+        ],
+        mrs[i, ii]
+    ];
+mls /: MakeBoxes[
+    mls[i_, ii_],
+    form : (StandardForm | TraditionalForm)
+] :=
+    interpretedBoxes[
+        RowBox[
+            {
+                "[",
+                massiveIndexBox[i, ii, Lower, form],
+                "|"
+            }
+        ],
+        mls[i, ii]
+    ];
+
+SpinorForm[expr_] := TraditionalForm[expr];
 
 End[];
 

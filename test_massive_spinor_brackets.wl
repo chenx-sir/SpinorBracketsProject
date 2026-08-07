@@ -121,6 +121,33 @@ invalidAngleOddChain = ToExpression[
     "MassiveSpinorBrackets`mra[3, 2]"
 ];
 
+mabBoxes = ToBoxes[
+  MassiveSpinorBrackets`mab[1, 1, 2, 2],
+  StandardForm
+];
+msbBoxes = ToBoxes[
+  MassiveSpinorBrackets`msb[1, 1, 2, 2],
+  StandardForm
+];
+masbBoxes = ToBoxes[
+  MassiveSpinorBrackets`masb[
+    1,
+    1,
+    MassiveSpinorBrackets`mp[3],
+    2,
+    2
+  ],
+  StandardForm
+];
+mraBoxes = ToBoxes[
+  MassiveSpinorBrackets`mra[1, 1],
+  StandardForm
+];
+mrsBoxes = ToBoxes[
+  MassiveSpinorBrackets`mrs[1, 1],
+  StandardForm
+];
+
 tests = {
   VerificationTest[
     expandedAngleChain,
@@ -161,6 +188,96 @@ tests = {
     Head[invalidAngleOddChain],
     System`NonCommutativeMultiply,
     TestID -> "invalid odd angle chain remains open"
+  ],
+  VerificationTest[
+    MatchQ[
+      mabBoxes,
+      InterpretationBox[
+        RowBox[
+          {
+            "\[LeftAngleBracket]",
+            SuperscriptBox[_, _],
+            "\[ThinSpace]",
+            SuperscriptBox[_, _],
+            "\[RightAngleBracket]"
+          }
+        ],
+        _
+      ]
+    ],
+    True,
+    TestID -> "massive angle bracket boxes"
+  ],
+  VerificationTest[
+    MatchQ[
+      msbBoxes,
+      InterpretationBox[
+        RowBox[
+          {
+            "[",
+            SubscriptBox[_, _],
+            "\[ThinSpace]",
+            SubscriptBox[_, _],
+            "]"
+          }
+        ],
+        _
+      ]
+    ],
+    True,
+    TestID -> "massive square bracket boxes"
+  ],
+  VerificationTest[
+    MatchQ[
+      masbBoxes,
+      InterpretationBox[
+        RowBox[
+          {
+            "\[LeftAngleBracket]",
+            SuperscriptBox[_, _],
+            _,
+            _,
+            _,
+            SubscriptBox[_, _],
+            "]"
+          }
+        ],
+        _
+      ]
+    ],
+    True,
+    TestID -> "massive mixed bracket boxes"
+  ],
+  VerificationTest[
+    MatchQ[
+      mraBoxes,
+      InterpretationBox[
+        RowBox[{"|", SuperscriptBox[_, _], "\[RightAngleBracket]"}],
+        _
+      ]
+    ],
+    True,
+    TestID -> "massive angle ket boxes"
+  ],
+  VerificationTest[
+    MatchQ[
+      mrsBoxes,
+      InterpretationBox[
+        RowBox[{"|", SubscriptBox[_, _], "]"}],
+        _
+      ]
+    ],
+    True,
+    TestID -> "massive square ket boxes"
+  ],
+  VerificationTest[
+    Head[
+      MassiveSpinorBrackets`SpinorForm[
+        MassiveSpinorBrackets`mab[1, 1, 2, 2]
+      ]
+    ],
+    TraditionalForm,
+    TestID -> "massive spinor form interface"
   ],
   VerificationTest[
     {
