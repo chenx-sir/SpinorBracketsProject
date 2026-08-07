@@ -1,5 +1,11 @@
 BeginPackage["MassiveSpinorBrackets`"];
 
+Unprotect[
+    mab, msb, masb, msab, mra, mla, mrs, mls, mp, mm,
+    MassiveEpsilon, MassiveSpinorExpand, MassiveSpinorEvaluate,
+    MassiveKinematicsCheck, SpinorForm
+];
+
 mab::usage = "mab[i,I,j,J] 表示 <i^I j^J>。";
 msb::usage = "msb[i,I,j,J] 表示 [i_I j_J]。";
 masb::usage = "masb[i,I,middle...,j,J] 表示 <i^I|...|j_J]。";
@@ -594,6 +600,7 @@ End[];
 
 Protect[
     mab, msb, masb, msab, mra, mla, mrs, mls, mp, mm,
-    MassiveEpsilon
+    MassiveEpsilon, MassiveSpinorExpand, MassiveSpinorEvaluate,
+    MassiveKinematicsCheck, SpinorForm
 ];
 EndPackage[];

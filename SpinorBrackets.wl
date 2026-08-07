@@ -1,5 +1,14 @@
 BeginPackage["SpinorBrackets`"];
 
+Unprotect[
+    ab, sb, asb, sab, ra, la, rs, ls, p, s,
+    SpinorExpand, SpinorCanonicalize, SpinorSimplify,
+    MandelstamExpand, MomentumConserve,
+    SchoutenIdentity, SchoutenRule, ParityConjugate,
+    BCFWShift, SpinorEvaluate, SpinorKinematicsCheck,
+    SpinorForm, Angle, Square
+];
+
 ab::usage = "ab[i,j] 表示角括号 <i j>；ab[i,p[...],...,j] 表示 <i|P...|j> 型 angle-angle spinor 链。";
 sb::usage = "sb[i,j] 表示方括号 [i j]；sb[i,p[...],...,j] 表示 [i|P...|j] 型 square-square spinor 链。";
 asb::usage = "asb[i,p[...],...,j] 表示混合 spinor 链 <i|P...|j]。";
@@ -481,5 +490,12 @@ SpinorForm[expr_] := TraditionalForm[expr];
 
 End[];
 
-Protect[ab, sb, asb, sab, ra, la, rs, ls, p, s, Angle, Square];
+Protect[
+    ab, sb, asb, sab, ra, la, rs, ls, p, s,
+    SpinorExpand, SpinorCanonicalize, SpinorSimplify,
+    MandelstamExpand, MomentumConserve,
+    SchoutenIdentity, SchoutenRule, ParityConjugate,
+    BCFWShift, SpinorEvaluate, SpinorKinematicsCheck,
+    SpinorForm, Angle, Square
+];
 EndPackage[];
