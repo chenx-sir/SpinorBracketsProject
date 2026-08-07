@@ -10,28 +10,30 @@ data = <|"Lambda" -> {
 spinorData = {data["Lambda"], data["LambdaTilde"]};
 
 expandedAngleChain = ToExpression[
-  "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
-    "MassiveSpinorBrackets`mla[1, 1] ** " <>
-    "MassiveSpinorBrackets`mp[2] ** " <>
-    "MassiveSpinorBrackets`mra[3, 2]]"
+    "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
+    "MassiveSpinorBrackets`mab[1, 1, " <>
+    "MassiveSpinorBrackets`mp[2], " <>
+    "MassiveSpinorBrackets`mp[3], " <>
+    "4, 2]]"
 ];
 expandedSquareChain = ToExpression[
-  "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
-    "MassiveSpinorBrackets`mls[1, 1] ** " <>
-    "MassiveSpinorBrackets`mp[2] ** " <>
-    "MassiveSpinorBrackets`mrs[3, 2]]"
+    "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
+    "MassiveSpinorBrackets`msb[1, 1, " <>
+    "MassiveSpinorBrackets`mp[2], " <>
+    "MassiveSpinorBrackets`mp[3], " <>
+    "4, 2]]"
 ];
 expandedMixedAngleSquareChain = ToExpression[
-  "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
-    "MassiveSpinorBrackets`mla[1, 1] ** " <>
-    "MassiveSpinorBrackets`mp[2] ** " <>
-    "MassiveSpinorBrackets`mrs[3, 2]]"
+    "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
+    "MassiveSpinorBrackets`masb[1, 1, " <>
+    "MassiveSpinorBrackets`mp[2], " <>
+    "3, 2]]"
 ];
 expandedMixedSquareAngleChain = ToExpression[
-  "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
-    "MassiveSpinorBrackets`mls[1, 1] ** " <>
-    "MassiveSpinorBrackets`mp[2] ** " <>
-    "MassiveSpinorBrackets`mra[3, 2]]"
+    "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
+    "MassiveSpinorBrackets`msab[1, 1, " <>
+    "MassiveSpinorBrackets`mp[2], " <>
+    "3, 2]]"
 ];
 expectedMixedAngleSquareChain = ToExpression[
   "MassiveSpinorBrackets`mab[1, 1, 2, 1] " <>
@@ -47,36 +49,52 @@ expectedMixedSquareAngleChain = ToExpression[
 ];
 expectedAngleChain = ToExpression[
   "MassiveSpinorBrackets`mab[1, 1, 2, 1] " <>
-    "MassiveSpinorBrackets`msab[2, 1, 3, 2] + " <>
+    "MassiveSpinorBrackets`msb[2, 1, 3, 1] " <>
+    "MassiveSpinorBrackets`mab[3, 1, 4, 2] + " <>
+    "MassiveSpinorBrackets`mab[1, 1, 2, 1] " <>
+    "MassiveSpinorBrackets`msb[2, 1, 3, 2] " <>
+    "MassiveSpinorBrackets`mab[3, 2, 4, 2] + " <>
     "MassiveSpinorBrackets`mab[1, 1, 2, 2] " <>
-    "MassiveSpinorBrackets`msab[2, 2, 3, 2]"
+    "MassiveSpinorBrackets`msb[2, 2, 3, 1] " <>
+    "MassiveSpinorBrackets`mab[3, 1, 4, 2] + " <>
+    "MassiveSpinorBrackets`mab[1, 1, 2, 2] " <>
+    "MassiveSpinorBrackets`msb[2, 2, 3, 2] " <>
+    "MassiveSpinorBrackets`mab[3, 2, 4, 2]"
 ];
 expectedSquareChain = ToExpression[
   "MassiveSpinorBrackets`msb[1, 1, 2, 1] " <>
-    "MassiveSpinorBrackets`masb[2, 1, 3, 2] + " <>
+    "MassiveSpinorBrackets`mab[2, 1, 3, 1] " <>
+    "MassiveSpinorBrackets`msb[3, 1, 4, 2] + " <>
+    "MassiveSpinorBrackets`msb[1, 1, 2, 1] " <>
+    "MassiveSpinorBrackets`mab[2, 1, 3, 2] " <>
+    "MassiveSpinorBrackets`msb[3, 2, 4, 2] + " <>
     "MassiveSpinorBrackets`msb[1, 1, 2, 2] " <>
-    "MassiveSpinorBrackets`masb[2, 2, 3, 2]"
+    "MassiveSpinorBrackets`mab[2, 2, 3, 1] " <>
+    "MassiveSpinorBrackets`msb[3, 1, 4, 2] + " <>
+    "MassiveSpinorBrackets`msb[1, 1, 2, 2] " <>
+    "MassiveSpinorBrackets`mab[2, 2, 3, 2] " <>
+    "MassiveSpinorBrackets`msb[3, 2, 4, 2]"
 ];
 expandedTwoMomentumChain = ToExpression[
-  "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
-    "MassiveSpinorBrackets`mla[1, 1] ** " <>
-    "MassiveSpinorBrackets`mp[2] ** " <>
-    "MassiveSpinorBrackets`mp[3] ** " <>
-    "MassiveSpinorBrackets`mrs[4, 2]]"
+    "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
+    "MassiveSpinorBrackets`mab[1, 1, " <>
+    "MassiveSpinorBrackets`mp[2], " <>
+    "MassiveSpinorBrackets`mp[3], " <>
+    "4, 2]]"
 ];
 expectedTwoMomentumChain = ToExpression[
   "MassiveSpinorBrackets`mab[1, 1, 2, 1] " <>
     "MassiveSpinorBrackets`msb[2, 1, 3, 1] " <>
-    "MassiveSpinorBrackets`masb[3, 1, 4, 2] + " <>
+    "MassiveSpinorBrackets`mab[3, 1, 4, 2] + " <>
     "MassiveSpinorBrackets`mab[1, 1, 2, 1] " <>
     "MassiveSpinorBrackets`msb[2, 1, 3, 2] " <>
-    "MassiveSpinorBrackets`masb[3, 2, 4, 2] + " <>
+    "MassiveSpinorBrackets`mab[3, 2, 4, 2] + " <>
     "MassiveSpinorBrackets`mab[1, 1, 2, 2] " <>
     "MassiveSpinorBrackets`msb[2, 2, 3, 1] " <>
-    "MassiveSpinorBrackets`masb[3, 1, 4, 2] + " <>
+    "MassiveSpinorBrackets`mab[3, 1, 4, 2] + " <>
     "MassiveSpinorBrackets`mab[1, 1, 2, 2] " <>
     "MassiveSpinorBrackets`msb[2, 2, 3, 2] " <>
-    "MassiveSpinorBrackets`masb[3, 2, 4, 2]"
+    "MassiveSpinorBrackets`mab[3, 2, 4, 2]"
 ];
 expandedMomentumSum = ToExpression[
   "MassiveSpinorBrackets`MassiveSpinorExpand[" <>
@@ -92,6 +110,15 @@ expectedMomentumSum = ToExpression[
     "MassiveSpinorBrackets`msb[3, 1, 4, 2] + " <>
     "MassiveSpinorBrackets`mab[1, 1, 3, 2] " <>
     "MassiveSpinorBrackets`msb[3, 2, 4, 2]"
+];
+invalidMixedZeroMomentum = ToExpression[
+  "MassiveSpinorBrackets`mla[1, 1] ** " <>
+    "MassiveSpinorBrackets`mrs[3, 2]"
+];
+invalidAngleOddChain = ToExpression[
+  "MassiveSpinorBrackets`mla[1, 1] ** " <>
+    "MassiveSpinorBrackets`mp[2] ** " <>
+    "MassiveSpinorBrackets`mra[3, 2]"
 ];
 
 tests = {
@@ -126,6 +153,26 @@ tests = {
     TestID -> "massive momentum sum expansion"
   ],
   VerificationTest[
+    Head[invalidMixedZeroMomentum],
+    System`NonCommutativeMultiply,
+    TestID -> "invalid zero-momentum mixed chain remains open"
+  ],
+  VerificationTest[
+    Head[invalidAngleOddChain],
+    System`NonCommutativeMultiply,
+    TestID -> "invalid odd angle chain remains open"
+  ],
+  VerificationTest[
+    {
+      MassiveEpsilon[1, 1],
+      MassiveEpsilon[1, 2],
+      MassiveEpsilon[2, 1],
+      MassiveEpsilon[2, 2]
+    },
+    {0, 1, -1, 0},
+    TestID -> "SU(2) epsilon convention"
+  ],
+  VerificationTest[
     MassiveSpinorEvaluate[mab[1, 1, 1, 1], spinorData],
     0,
     TestID -> "list interface bracket evaluation"
@@ -154,7 +201,7 @@ tests = {
     MassiveKinematicsCheck[spinorData],
     <|
       "ValidDimensions" -> True,
-      "OnShell" -> True,
+      "OnShell" -> Missing["MassesNotProvided"],
       "MassSquared" -> {4, -1},
       "TotalMomentum" -> {{9, 12}, {10, 19}},
       "MomentumConserving" -> False
@@ -165,6 +212,17 @@ tests = {
     MassiveKinematicsCheck[data],
     MassiveKinematicsCheck[spinorData],
     TestID -> "association kinematics compatibility"
+  ],
+  VerificationTest[
+    MassiveKinematicsCheck[
+      {
+        {{{1, 0}, {0, 1}}},
+        {{{1, 0}, {0, 1}}}
+      },
+      {1}
+    ]["OnShell"],
+    True,
+    TestID -> "given mass shell check"
   ],
   VerificationTest[
     Quiet[
