@@ -23,14 +23,14 @@ SpinorBracketsProject 是一组用于四维 spinor-helicity 计算的 Wolfram La
 
 无质量四动量写成一个秩一的二乘矩阵：
 
-\[
+$$
 p_{\alpha\dot\alpha}
 =\lambda_\alpha\tilde\lambda_{\dot\alpha}.
-\]
+$$
 
 每条外腿由一组二维 Weyl spinor lambda 和 lambdaTilde 描述。基本括号约定为：
 
-\[
+$$
 \langle i j\rangle
 =\epsilon^{\alpha\beta}\lambda_{i,\alpha}\lambda_{j,\beta},
 \qquad
@@ -38,29 +38,29 @@ p_{\alpha\dot\alpha}
 =\epsilon^{\dot\alpha\dot\beta}
 \tilde\lambda_{i,\dot\alpha}
 \tilde\lambda_{j,\dot\beta}.
-\]
+$$
 
 本项目采用：
 
-\[
+$$
 s_{ij}=\langle i j\rangle[i j].
-\]
+$$
 
 ### 有质量粒子
 
 有质量四动量矩阵一般是满秩的，需要两个 little-group 分量：
 
-\[
+$$
 p_{\alpha\dot\alpha}
 =\lambda^I_\alpha\tilde\lambda_{\dot\alpha I},
 \qquad I=1,2.
-\]
+$$
 
 有质量包采用：
 
-\[
+$$
 \epsilon_{12}=1,\qquad \epsilon^{12}=-1.
-\]
+$$
 
 因此：
 
@@ -71,9 +71,9 @@ p_{\alpha\dot\alpha}
 
 质量平方由动量矩阵的行列式给出：
 
-\[
+$$
 m_i^2=\det(p_i).
-\]
+$$
 
 所以 mm[i] 表示质量平方 m_i^2，而不是质量 m_i。
 
@@ -83,16 +83,16 @@ m_i^2=\det(p_i).
 
 | 符号 | 含义 |
 | --- | --- |
-| ab[i,j] | 角括号 \(\langle i j\rangle\) |
-| sb[i,j] | 方括号 \([i j]\) |
-| asb[i,...,j] | 混合链 \(\langle i|\cdots|j]\) |
-| sab[i,...,j] | 混合链 \([i|\cdots|j\rangle\) |
-| la[i] | 左 angle bra \(\langle i|\) |
-| ra[i] | 右 angle ket \(|i\rangle\) |
-| ls[i] | 左 square bra \([i|\) |
-| rs[i] | 右 square ket \(|i]\) |
-| p[i,j,...] | 动量和 \(p_i+p_j+\cdots\) |
-| s[i,j,...] | 动量和平方 \((p_i+p_j+\cdots)^2\) |
+| ab[i,j] | 角括号 $\langle i j\rangle$ |
+| sb[i,j] | 方括号 $[i j]$ |
+| asb[i,...,j] | 混合链 $\langle i|\cdots|j]$ |
+| sab[i,...,j] | 混合链 $[i|\cdots|j\rangle$ |
+| la[i] | 左 angle bra $\langle i|$ |
+| ra[i] | 右 angle ket $|i\rangle$ |
+| ls[i] | 左 square bra $[i|$ |
+| rs[i] | 右 square ket $|i]$ |
+| p[i,j,...] | 动量和 $p_i+p_j+\cdots$ |
+| s[i,j,...] | 动量和平方 $(p_i+p_j+\cdots)^2$ |
 
 相邻开放旋量使用双星号收缩：
 
@@ -145,11 +145,11 @@ p[2,3] 表示 p[2]+p[3]，展开时会逐项分配。
 
 SchoutenIdentity[Angle, a, b, c, d] 和 SchoutenIdentity[Square, a, b, c, d] 返回：
 
-\[
+$$
 \langle a b\rangle\langle c d\rangle
 +\langle a c\rangle\langle d b\rangle
 +\langle a d\rangle\langle b c\rangle=0.
-\]
+$$
 
 SchoutenRule[Angle, a, b, c, d] 和 SchoutenRule[Square, a, b, c, d] 返回定向替换规则，例如：
 
@@ -159,11 +159,11 @@ ParityConjugate[expr] 交换 angle 与 square 对象，同时交换 asb 和 sab�
 
 BCFWShift[expr, {a,b}, z] 执行无质量 [a b> shift：
 
-\[
+$$
 \tilde\lambda_a\to\tilde\lambda_a-z\tilde\lambda_b,
 \qquad
 \lambda_b\to\lambda_b+z\lambda_a.
-\]
+$$
 
 ### 无质量数值求值
 
@@ -190,16 +190,16 @@ SpinorKinematicsCheck[{lambdas, lambdaTildes}] 返回 ValidDimensions、OnShell�
 
 | 符号 | 含义 |
 | --- | --- |
-| mab[i,I,j,J] | \(\langle i^I j^J\rangle\) |
-| msb[i,I,j,J] | \([i_I j_J]\) |
-| masb[i,I,...,j,J] | \(\langle i^I|\cdots|j_J]\) |
-| msab[i,I,...,j,J] | \([i_I|\cdots|j^J\rangle\) |
-| mla[i,I] | 左 angle bra \(\langle i^I|\) |
-| mra[i,I] | 右 angle ket \(|i^I\rangle\) |
-| mls[i,I] | 左 square bra \([i_I|\) |
-| mrs[i,I] | 右 square ket \(|i_I]\) |
-| mp[i,j,...] | 有质量动量和 \(p_i+p_j+\cdots\) |
-| mm[i,j,...] | 动量和的质量平方 \(\det(p_i+p_j+\cdots)\) |
+| mab[i,I,j,J] | $\langle i^I j^J\rangle$ |
+| msb[i,I,j,J] | $[i_I j_J]$ |
+| masb[i,I,...,j,J] | $\langle i^I|\cdots|j_J]$ |
+| msab[i,I,...,j,J] | $[i_I|\cdots|j^J\rangle$ |
+| mla[i,I] | 左 angle bra $\langle i^I|$ |
+| mra[i,I] | 右 angle ket $|i^I\rangle$ |
+| mls[i,I] | 左 square bra $[i_I|$ |
+| mrs[i,I] | 右 square ket $|i_I]$ |
+| mp[i,j,...] | 有质量动量和 $p_i+p_j+\cdots$ |
+| mm[i,j,...] | 动量和的质量平方 $\det(p_i+p_j+\cdots)$ |
 | MassiveEpsilon[I,J] | little-group 的二维 epsilon 张量 |
 
 例如：
@@ -235,10 +235,10 @@ SpinorKinematicsCheck[{lambdas, lambdaTildes}] 返回 ValidDimensions、OnShell�
 
 MassiveSpinorExpand[expr] 按照
 
-\[
+$$
 p_{\alpha\dot\alpha}
 =\lambda^I_\alpha\tilde\lambda_{\dot\alpha I}
-\]
+$$
 
 展开动量插入，并对中间 little-group 指标求和：
 
@@ -293,9 +293,9 @@ p_{\alpha\dot\alpha}
 
 则额外检查：
 
-\[
+$$
 \det(p_i)=m_i^2.
-\]
+$$
 
 association 输入也受到支持：
 
@@ -358,4 +358,3 @@ association 输入也受到支持：
 项目仓库：
 
 https://github.com/chenx-sir/SpinorBracketsProject
-
