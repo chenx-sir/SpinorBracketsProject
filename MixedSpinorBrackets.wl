@@ -6,18 +6,28 @@ Unprotect[
     ComptonAmplitude
 ];
 
-Needs["SpinorBrackets`"];
-Needs["MassiveSpinorBrackets`"];
+(* 自动加载同目录中的无质量和有质量 spinor 包。 *)
+With[{packageDirectory = Quiet@Check[DirectoryName[$InputFileName], ""]},
+    If[DirectoryQ[packageDirectory],
+        Block[
+            {$Path = DeleteDuplicates[Prepend[$Path, packageDirectory]]},
+            Needs["SpinorBrackets`"];
+            Needs["MassiveSpinorBrackets`"]
+        ],
+        Needs["SpinorBrackets`"];
+        Needs["MassiveSpinorBrackets`"]
+    ]
+];
 
-MasslessLeg::usage = "MasslessLeg[i] labels a massless external leg.";
-MassiveLeg::usage = "MassiveLeg[i,I] labels a massive external leg and its SU(2) index.";
-MixedAngle::usage = "MixedAngle[leg1,leg2] represents a mixed angle bracket.";
-MixedSquare::usage = "MixedSquare[leg1,leg2] represents a mixed square bracket.";
-MixedChain::usage = "MixedChain[MasslessLeg[a],{P1,...},MasslessLeg[b]] represents <a|P1...|b].";
-MixedSpinorExpand::usage = "MixedSpinorExpand[expr] expands mixed chains with massive momenta.";
-MixedSpinorEvaluate::usage = "MixedSpinorEvaluate[expr,data] evaluates mixed, massless, and massive spinor expressions.";
-MixedKinematicsCheck::usage = "MixedKinematicsCheck[data] delegates massless and massive checks.";
-ComptonAmplitude::usage = "ComptonAmplitude[spin,legs,invariants,coupling,indices] returns a stripped Compton amplitude.";
+MasslessLeg::usage = "MasslessLeg[i] 表示编号为 i 的无质量外腿。";
+MassiveLeg::usage = "MassiveLeg[i, I] 表示编号为 i 且带有 SU(2) 指标 I 的有质量外腿。";
+MixedAngle::usage = "MixedAngle[leg1, leg2] 表示混合角括号。";
+MixedSquare::usage = "MixedSquare[leg1, leg2] 表示混合方括号。";
+MixedChain::usage = "MixedChain[MasslessLeg[a], {P1, ...}, MasslessLeg[b]] 表示 <a|P1...|b]。";
+MixedSpinorExpand::usage = "MixedSpinorExpand[expr] 展开含有质量动量的混合旋量链。";
+MixedSpinorEvaluate::usage = "MixedSpinorEvaluate[expr, data] 对混合、有质量和无质量旋量表达式进行数值求值。";
+MixedKinematicsCheck::usage = "MixedKinematicsCheck[data] 分别调用无质量和有质量包的运动学检查。";
+ComptonAmplitude::usage = "ComptonAmplitude[spin, legs, invariants, coupling, indices] 返回去除整体因子的 Compton 振幅。";
 
 Begin["`Private`"];
 
@@ -29,6 +39,7 @@ ClearAll[determinant2, epsilon2];
 determinant2[u_List, v_List] /; Length[u] == Length[v] == 2 := Det[{u, v}];
 epsilon2 = {{0, 1}, {-1, 0}};
 
+(* 将列表形式和 Association 形式的旋量数据统一起来。 *)
 ClearAll[normalizeSpinorData, mixedDataParts];
 normalizeSpinorData[data : {_, _}] := <|"Lambda" -> data[[1]], "LambdaTilde" -> data[[2]]|>;
 normalizeSpinorData[data_Association] := data;
@@ -45,6 +56,7 @@ ClearAll[masslessSpinor, massiveSpinor];
 masslessSpinor[data_Association, key_String, i_Integer] := Lookup[data, key][[i]];
 massiveSpinor[data_Association, key_String, i_Integer, ii_Integer] := Lookup[data, key][[i, ii]];
 
+(* 数值求值直接委托给两个基础包，避免重复实现。 *)
 ClearAll[delegateMasslessEvaluate, delegateMassiveEvaluate];
 delegateMasslessEvaluate[expr_, data_Association] :=
     SpinorBrackets`SpinorEvaluate[
@@ -54,6 +66,7 @@ delegateMasslessEvaluate[expr_, data_Association] :=
 delegateMassiveEvaluate[expr_, data_Association] :=
     MassiveSpinorBrackets`MassiveSpinorEvaluate[expr, data];
 
+(* 用二维行列式计算无质量与有质量旋量之间的混合括号。 *)
 ClearAll[mixedAngleValue, mixedSquareValue];
 mixedAngleValue[MasslessLeg[a_], MassiveLeg[i_, ii_], masslessData_Association, massiveData_Association] :=
     determinant2[masslessSpinor[masslessData, "Lambda", a], massiveSpinor[massiveData, "Lambda", i, ii]];
@@ -64,6 +77,7 @@ mixedSquareValue[MassiveLeg[i_, ii_], MasslessLeg[a_], masslessData_Association,
 mixedSquareValue[MasslessLeg[a_], MassiveLeg[i_, ii_], masslessData_Association, massiveData_Association] :=
     determinant2[masslessSpinor[masslessData, "LambdaTilde", a], massiveSpinor[massiveData, "LambdaTilde", i, ii]];
 
+(* 将混合链中的每个动量插入计算为二维动量矩阵。 *)
 ClearAll[mixedMatrixValue];
 mixedMatrixValue[MassiveSpinorBrackets`mp[labels___Integer], masslessData_Association, massiveData_Association] :=
     MassiveSpinorBrackets`MassiveSpinorEvaluate[MassiveSpinorBrackets`mp[labels], massiveData];
@@ -79,6 +93,7 @@ mixedMatrixValue[
     MassiveSpinorBrackets`mp[labels], masslessData, massiveData
 ];
 
+(* 先做矩阵乘法，再用两端的无质量旋量完成链的收缩。 *)
 ClearAll[mixedChainValue];
 mixedChainValue[MasslessLeg[a_], middle_List, MasslessLeg[b_], masslessData_Association, massiveData_Association] /; Length[middle] > 0 := Module[
     {matrices, product, left, right},
@@ -90,6 +105,7 @@ mixedChainValue[MasslessLeg[a_], middle_List, MasslessLeg[b_], masslessData_Asso
     left . epsilon2 . product . epsilon2 . right
 ];
 
+(* 对有质量动量使用 p = lambda^I tilde-lambda_I 展开 little-group 求和。 *)
 ClearAll[mixedSpinorExpandOne];
 mixedSpinorExpandOne[MixedChain[MasslessLeg[a_], {MassiveSpinorBrackets`mp[i_]}, MasslessLeg[b_]]] :=
     Sum[MixedAngle[MasslessLeg[a], MassiveLeg[i, ii]] * MixedSquare[MassiveLeg[i, ii], MasslessLeg[b]], {ii, 1, 2}];
@@ -200,6 +216,7 @@ MixedKinematicsCheck[data : {_, _}] :=
         <|"Massless" -> data[[1]], "Massive" -> data[[2]]|>
     ];
 
+(* 构造 Compton 振幅中反复出现的 X 和 Y 结构。 *)
 ClearAll[comptonY, comptonX];
 comptonY[massiveIn_, photonMinus_, photonPlus_, massiveOut_, inIndex_, outIndex_] :=
     MixedAngle[MasslessLeg[photonMinus], MassiveLeg[massiveIn, inIndex]] *

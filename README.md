@@ -330,6 +330,8 @@ association 输入也受到支持：
 - `SpinorBrackets`` 的无质量括号、动量和数值求值；
 - `MassiveSpinorBrackets`` 的有质量括号、动量分解和数值求值。
 
+混合包加载时会自动把自身所在目录加入临时搜索路径，并自动加载同目录下的这两个基础包。因此，即使从其他工作目录使用绝对路径执行 `Get`，也不需要事先单独加载两个基础包；如果它们已经加载，`Needs` 不会重复加载。
+
 加载方式：
 
     Get[FileNameJoin[{project, "MixedSpinorBrackets.wl"}]];
