@@ -323,6 +323,168 @@ association 输入也受到支持：
 
 普通 Lorentz Schouten 恒等式仍然存在，因为 Weyl spinor 的 Lorentz 指标仍然是二维的；在当前包中，需要先用 MassiveSpinorExpand 展开后手动使用这些关系。
 
+## 混合包：MixedSpinorBrackets
+
+`MixedSpinorBrackets.wl` 用于有质量粒子和无质量粒子同时出现在同一个表达式中的情形，例如截图中的 massive Compton scattering。它不复制前面两个包的实现，而是通过 `Needs` 直接调用：
+
+- `SpinorBrackets`` 的无质量括号、动量和数值求值；
+- `MassiveSpinorBrackets`` 的有质量括号、动量分解和数值求值。
+
+加载方式：
+
+    Get[FileNameJoin[{project, "MixedSpinorBrackets.wl"}]];
+
+### 混合外腿标签
+
+为了避免只使用整数时无法判断某条腿是有质量还是无质量，新包使用显式腿标签：
+
+    MasslessLeg[2]
+    MassiveLeg[1, I]
+
+其中 `MassiveLeg[1,I]` 的第二个参数是有质量粒子的 `SU(2)` little-group 指标。
+
+混合括号写成：
+
+    MixedAngle[MasslessLeg[2], MassiveLeg[1, I]]
+    MixedSquare[MassiveLeg[4, J], MasslessLeg[3]]
+
+对应：
+
+$$
+\langle 2\,1^I\rangle,
+\qquad
+[4_J\,3].
+$$
+
+### 混合动量链
+
+无质量端点之间、插入有质量动量的链写成：
+
+    MixedChain[
+        MasslessLeg[2],
+        {MassiveSpinorBrackets`mp[1]},
+        MasslessLeg[3]
+    ]
+
+它表示：
+
+$$
+\langle 2|p_1|3]
+=
+\sum_{I=1}^{2}
+\langle 2\,1^I\rangle[1_I\,3].
+$$
+
+`MixedSpinorExpand` 会显式展开 little-group 求和：
+
+    MixedSpinorExpand[
+        MixedChain[
+            MasslessLeg[2],
+            {MassiveSpinorBrackets`mp[1]},
+            MasslessLeg[3]
+        ]
+    ]
+
+结果结构为：
+
+    MixedAngle[MasslessLeg[2], MassiveLeg[1, 1]]
+        MixedSquare[MassiveLeg[1, 1], MasslessLeg[3]]
+    + MixedAngle[MasslessLeg[2], MassiveLeg[1, 2]]
+        MixedSquare[MassiveLeg[1, 2], MasslessLeg[3]]
+
+### 混合数据格式
+
+混合包的数据 association 包含 `Massless` 和 `Massive` 两部分。每一部分的内部格式与对应原包完全相同：
+
+    mixedData = <|
+        "Massless" -> <|
+            "Lambda" -> masslessLambdas,
+            "LambdaTilde" -> masslessLambdaTildes
+        |>,
+        "Massive" -> <|
+            "Lambda" -> massiveLambdas,
+            "LambdaTilde" -> massiveLambdaTildes
+        |>
+    |>;
+
+也支持把每一部分写成原包使用的两个列表：
+
+    mixedData = <|
+        "Massless" -> {masslessLambdas, masslessLambdaTildes},
+        "Massive" -> {massiveLambdas, massiveLambdaTildes}
+    |>;
+
+求值时使用：
+
+    MixedSpinorEvaluate[
+        MixedChain[
+            MasslessLeg[2],
+            {MassiveSpinorBrackets`mp[1]},
+            MasslessLeg[3]
+        ],
+        mixedData
+    ]
+
+`MixedKinematicsCheck[mixedData]` 会分别调用 `SpinorKinematicsCheck` 和 `MassiveKinematicsCheck`，返回：
+
+    <|
+        "Massless" -> (...),
+        "Massive" -> (...)
+    |>
+
+### Compton 振幅
+
+`ComptonAmplitude` 提供截图中 tree-level Compton 公式的 stripped spinor 结构：
+
+    ComptonAmplitude[
+        0,
+        {1, 2, 3, 4},
+        {s, u, mass},
+        g
+    ]
+
+表示：
+
+$$
+\mathcal M_0
+=
+\frac{g^2}{(s-m^2)(u-m^2)}
+\langle 2|(p_1-p_4)|3]^2.
+$$
+
+自旋 `1/2` 需要一个入射和一个出射的 massive little-group 指标：
+
+    ComptonAmplitude[
+        1/2,
+        {1, 2, 3, 4},
+        {s, u, mass},
+        g,
+        {I, J}
+    ]
+
+它返回：
+
+$$
+\frac{g^2}{(s-m^2)(u-m^2)}
+\langle 2|(p_1-p_4)|3]
+\left(
+\langle 2\,1^I\rangle[4_J\,3]
++\langle 2\,4^J\rangle[1_I\,3]
+\right).
+$$
+
+自旋 `1` 的输入指标和输出指标分别是两个指标的列表：
+
+    ComptonAmplitude[
+        1,
+        {1, 2, 3, 4},
+        {s, u, mass},
+        g,
+        {{I1, I2}, {J1, J2}}
+    ]
+
+它返回两个自旋 `1/2` 型 `Y` 因子的乘积。需要注意：`s`、`u`、`mass` 和 `g` 在这个接口中是外部传入的运动学变量和耦合常数；新包不会擅自根据动量数据推断它们之间的关系。
+
 ## 输出渲染
 
 两个包都为主要 spinor 对象定义了 MakeBoxes：
@@ -340,17 +502,20 @@ association 输入也受到支持：
 
     wolframscript -file test_spinor_brackets.wl
     wolframscript -file test_massive_spinor_brackets.wl
+    wolframscript -file test_mixed_spinor_brackets.wl
 
-测试覆盖开放旋量收缩、动量插入展开、动量和展开、反对称性、Mandelstam 展开、动量守恒、Schouten、宇称变换、BCFW shift、数值求值、质壳检查、little-group epsilon 约定以及 MakeBoxes 输出渲染。
+测试覆盖开放旋量收缩、动量插入展开、动量和展开、反对称性、Mandelstam 展开、动量守恒、Schouten、宇称变换、BCFW shift、数值求值、质壳检查、little-group epsilon 约定、MakeBoxes 输出渲染，以及 mixed massive/massless 括号和 Compton 振幅结构。
 
 ## 文件结构
 
     SpinorBracketsProject/
     ├── SpinorBrackets.wl
     ├── MassiveSpinorBrackets.wl
+    ├── MixedSpinorBrackets.wl
     ├── sample.wl
     ├── test_spinor_brackets.wl
     ├── test_massive_spinor_brackets.wl
+    ├── test_mixed_spinor_brackets.wl
     └── README.md
 
 ## GitHub
