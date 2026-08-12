@@ -6,16 +6,6 @@ Unprotect[
     MassiveKinematicsCheck, SpinorForm
 ];
 
-If[DirectoryQ[Quiet@Check[DirectoryName[$InputFileName], ""]],
-        Block[
-            {$Path = DeleteDuplicates[
-                Prepend[$Path, Quiet@Check[DirectoryName[$InputFileName], ""]]
-            ]},
-            Needs["SpinorUtilities`"]
-        ],
-        Needs["SpinorUtilities`"]
-];
-
 mab::usage = "mab[i,I,j,J] 表示 <i^I j^J>。";
 msb::usage = "msb[i,I,j,J] 表示 [i_I j_J]。";
 masb::usage = "masb[i,I,middle...,j,J] 表示 <i^I|...|j_J]。";
@@ -32,22 +22,27 @@ SpinorForm::usage = "SpinorForm[expr] 使用 TraditionalForm 显示有质量 spi
 
 Begin["`Private`"];
 
+(* 返回 SU(2) little-group epsilon 张量的指定分量。 *)
 MassiveEpsilon[i_Integer, j_Integer] /;
     1 <= i <= 2 && 1 <= j <= 2 :=
     {{0, 1}, {-1, 0}}[[i, j]];
 
 ClearAll[momentumSequenceQ];
+(* 判断列表中的对象是否全部为有质量动量。 *)
 momentumSequenceQ[items_List] :=
     MatchQ[items, {MassiveSpinorBrackets`mp[___] ...}];
 
 ClearAll[massiveSameChiralityMiddleQ, massiveMixedChiralityMiddleQ];
+(* 判断同手征链的中间动量个数是否满足偶数条件。 *)
 massiveSameChiralityMiddleQ[items_List] :=
     items === {} ||
         (momentumSequenceQ[items] && EvenQ[Length[items]]);
+(* 判断混合手征链的中间动量个数是否满足奇数条件。 *)
 massiveMixedChiralityMiddleQ[items_List] :=
     momentumSequenceQ[items] && OddQ[Length[items]];
 
 ClearAll[scalarBracketQ, orderedProduct];
+(* 判断对象是否为可交换的有质量标量括号。 *)
 scalarBracketQ[expr_] :=
     MatchQ[
         expr,
@@ -57,6 +52,7 @@ scalarBracketQ[expr_] :=
         MassiveSpinorBrackets`msab[___] |
         MassiveSpinorBrackets`mm[___]
     ];
+(* 根据因子类型选择普通乘法或非交换乘法。 *)
 orderedProduct[items_List] := Which[
     AnyTrue[items, SameQ[#, 0] &],
         0,
@@ -70,11 +66,14 @@ orderedProduct[items_List] := Which[
         NonCommutativeMultiply @@ items
 ];
 
+(* 同一腿且 little-group 指标相同时，角括号为零。 *)
 mab[i_, ii_, j_, jj_] /;
     SameQ[i, j] && SameQ[ii, jj] := 0;
+(* 同一腿且 little-group 指标相同时，方括号为零。 *)
 msb[i_, ii_, j_, jj_] /;
     SameQ[i, j] && SameQ[ii, jj] := 0;
 
+(* 将相邻的 angle bra 和 angle ket 收缩为有质量角括号。 *)
 mla /: HoldPattern[
     NonCommutativeMultiply[pre___, mla[i_, ii_], mra[j_, jj_], post___]
 ] :=
@@ -85,6 +84,7 @@ mla /: HoldPattern[
             post
         }
     ];
+(* 将相邻的 square bra 和 square ket 收缩为有质量方括号。 *)
 mls /: HoldPattern[
     NonCommutativeMultiply[pre___, mls[i_, ii_], mrs[j_, jj_], post___]
 ] :=
@@ -96,30 +96,36 @@ mls /: HoldPattern[
         }
     ];
 
+(* 将带偶数个动量插入的 angle-angle 链收缩为 mab。 *)
 mla /: HoldPattern[
     NonCommutativeMultiply[mla[i_, ii_], middle___, mra[j_, jj_]]
 ] /; massiveSameChiralityMiddleQ[{middle}] && Length[{middle}] > 0 :=
     mab[i, ii, middle, j, jj];
+(* 将带偶数个动量插入的 square-square 链收缩为 msb。 *)
 mls /: HoldPattern[
     NonCommutativeMultiply[mls[i_, ii_], middle___, mrs[j_, jj_]]
 ] /; massiveSameChiralityMiddleQ[{middle}] && Length[{middle}] > 0 :=
     msb[i, ii, middle, j, jj];
+(* 将带奇数个动量插入的 angle-square 链收缩为 masb。 *)
 mla /: HoldPattern[
     NonCommutativeMultiply[mla[i_, ii_], middle___, mrs[j_, jj_]]
 ] /; massiveMixedChiralityMiddleQ[{middle}] :=
     masb[i, ii, middle, j, jj];
+(* 将带奇数个动量插入的 square-angle 链收缩为 msab。 *)
 mls /: HoldPattern[
     NonCommutativeMultiply[mls[i_, ii_], middle___, mra[j_, jj_]]
 ] /; massiveMixedChiralityMiddleQ[{middle}] :=
     msab[i, ii, middle, j, jj];
 
 ClearAll[angle, square, chainFactor, expandChain];
+(* 将相邻的有质量旋量标签转换成基本括号。 *)
 chainFactor[angle, {{i_, ii_}, {j_, jj_}}] :=
     mab[i, ii, j, jj];
+(* 将相邻的有质量方旋量标签转换成基本方括号。 *)
 chainFactor[square, {{i_, ii_}, {j_, jj_}}] :=
     msb[i, ii, j, jj];
 
-(* Each inserted massive momentum introduces one summed SU(2) index. *)
+(* 展开有质量动量插入，并对每个插入求和 SU(2) little-group 指标。 *)
 expandChain[start_, end_, {i_, ii_}, momenta_List, {j_, jj_}] := Module[
     {
         choices,
@@ -162,6 +168,7 @@ expandChain[start_, end_, {i_, ii_}, momenta_List, {j_, jj_}] := Module[
     ]
 ];
 
+(* 展开有质量 spinor 链中的动量和。 *)
 MassiveSpinorExpand[expr_] := Expand[
     expr /. {
         HoldPattern[mab[i_, ii_, middle___, j_, jj_]] /;
@@ -179,15 +186,21 @@ MassiveSpinorExpand[expr_] := Expand[
     }
 ] /. HoldPattern[NonCommutativeMultiply[___, 0, ___]] :> 0;
 
-ClearAll[outer2, raise2, massiveMomentum];
+ClearAll[det2, outer2, raise2, massiveMomentum];
+(* 计算两个二维旋量的行列式。 *)
+det2[u_List, v_List] /; Length[u] == Length[v] == 2 :=
+    Det[{u, v}];
+(* 计算两个二维列向量的外积矩阵。 *)
 outer2[u_List, v_List] /; Length[u] == Length[v] == 2 :=
     Outer[Times, u, v];
-(* epsilon^12 = -1 raises a two-component Lorentz spinor index. *)
+(* 根据 epsilon^12 = -1 的约定升高二维 Lorentz 旋量指标。 *)
 raise2[{a_, b_}] := {-b, a};
+(* 根据两组 little-group 旋量构造第 i 条有质量动量矩阵。 *)
 massiveMomentum[lambdas_List, lambdaTildes_List, i_Integer] :=
     Total[MapThread[outer2, {lambdas[[i]], lambdaTildes[[i]]}]];
 
 MassiveSpinorEvaluate::data = "需要两组长度相同的有质量二维 spinor 列表，但收到的是 `1`。";
+(* 使用给定数据对有质量括号、动量和开放旋量求值。 *)
 MassiveSpinorEvaluate[
     expr_,
     {lambdas_List, lambdaTildes_List}
@@ -212,17 +225,11 @@ MassiveSpinorEvaluate[
         HoldPattern[mab[i_Integer, ii_Integer, j_Integer, jj_Integer]] /;
             1 <= i <= n && 1 <= j <= n &&
                 1 <= ii <= 2 && 1 <= jj <= 2 :>
-          SpinorUtilities`SpinorDeterminant2[
-              lambdas[[i, ii]],
-              lambdas[[j, jj]]
-          ],
+          det2[lambdas[[i, ii]], lambdas[[j, jj]]],
         HoldPattern[msb[i_Integer, ii_Integer, j_Integer, jj_Integer]] /;
             1 <= i <= n && 1 <= j <= n &&
                 1 <= ii <= 2 && 1 <= jj <= 2 :>
-          SpinorUtilities`SpinorDeterminant2[
-              lambdaTildes[[i, ii]],
-              lambdaTildes[[j, jj]]
-          ],
+          det2[lambdaTildes[[i, ii]], lambdaTildes[[j, jj]]],
         HoldPattern[mp[labels___Integer]] /;
             And @@ Thread[1 <= {labels} <= n] :>
           Total[
@@ -251,6 +258,7 @@ MassiveSpinorEvaluate[
     }
 ];
 
+(* 从 Association 格式的数据中读取两组有质量旋量。 *)
 MassiveSpinorEvaluate[expr_, data_Association] := With[
     {
         lambdas = Lookup[data, "Lambda", Missing["NotAvailable"]],
@@ -265,6 +273,7 @@ MassiveSpinorEvaluate[expr_, data_Association] := With[
     ]
 ];
 
+(* 检查有质量旋量数据的维数、质量平方、总动量和守恒。 *)
 MassiveKinematicsCheck[
     {lambdas_List, lambdaTildes_List}
 ] := Module[
@@ -301,6 +310,7 @@ MassiveKinematicsCheck[
     |>
 ];
 
+(* 在给定质量列表时额外检查每条腿的质壳条件。 *)
 MassiveKinematicsCheck[
     {lambdas_List, lambdaTildes_List},
     masses_List
@@ -323,6 +333,7 @@ MassiveKinematicsCheck[
     ReplacePart[report, "OnShell" -> onShell]
 ];
 
+(* 对 Association 格式的数据执行有质量运动学检查。 *)
 MassiveKinematicsCheck[data_Association] := With[
     {
         lambdas = Lookup[data, "Lambda", Missing["NotAvailable"]],
@@ -340,6 +351,7 @@ MassiveKinematicsCheck[data_Association] := With[
     ]
 ];
 
+(* 对 Association 数据和给定质量列表执行质壳检查。 *)
 MassiveKinematicsCheck[data_Association, masses_List] := With[
     {
         lambdas = Lookup[data, "Lambda", Missing["NotAvailable"]],
@@ -369,6 +381,7 @@ ClearAll[
     massiveSpinorBoxes
 ];
 
+(* 为未识别的内部对象生成原始函数调用框。 *)
 rawCallBoxes[head_String, args_List, form_] :=
     RowBox[
         {
@@ -380,9 +393,11 @@ rawCallBoxes[head_String, args_List, form_] :=
     ];
 
 SetAttributes[interpretedBoxes, HoldRest];
+(* 创建可显示且仍可还原为原表达式的解释框。 *)
 interpretedBoxes[display_, expr_] :=
     InterpretationBox[display, expr];
 
+(* 根据指标位置生成上标或下标框。 *)
 massiveIndexBox[i_, ii_, position_, form_] :=
     If[
         position === Upper,
@@ -390,6 +405,7 @@ massiveIndexBox[i_, ii_, position_, form_] :=
         SubscriptBox[MakeBoxes[i, form], MakeBoxes[ii, form]]
     ];
 
+(* 生成基本有质量括号的显示框。 *)
 massiveBracketBoxes[left_, right_, i_, ii_, j_, jj_, form_] :=
     RowBox[
         {
@@ -401,6 +417,7 @@ massiveBracketBoxes[left_, right_, i_, ii_, j_, jj_, form_] :=
         }
     ];
 
+(* 生成同手征有质量链的显示框。 *)
 massiveChainBoxes[
     left_, right_, i_, ii_, middle_List, j_, jj_, firstPosition_,
     lastPosition_, form_
@@ -422,6 +439,7 @@ massiveChainBoxes[
         }
     ];
 
+(* 生成混合手征有质量链的显示框。 *)
 massiveMixedChainBoxes[
     left_, right_, i_, ii_, middle_List, j_, jj_, firstPosition_,
     lastPosition_, form_
@@ -443,6 +461,7 @@ massiveMixedChainBoxes[
         }
     ];
 
+(* 为有质量 spinor 对象选择相应的显示形式。 *)
 massiveSpinorBoxes[mab, {i_, ii_, j_, jj_}, form_] :=
     massiveBracketBoxes[
         "\[LeftAngleBracket]",
@@ -453,6 +472,7 @@ massiveSpinorBoxes[mab, {i_, ii_, j_, jj_}, form_] :=
         jj,
         form
     ];
+(* 为 msb 选择方括号显示形式。 *)
 massiveSpinorBoxes[msb, {i_, ii_, j_, jj_}, form_] :=
     RowBox[
         {
@@ -463,6 +483,7 @@ massiveSpinorBoxes[msb, {i_, ii_, j_, jj_}, form_] :=
             "]"
         }
     ];
+(* 为带动量插入的 mab 选择同手征链显示形式。 *)
 massiveSpinorBoxes[mab, {i_, ii_, middle___, j_, jj_}, form_] :=
     massiveChainBoxes[
         "\[LeftAngleBracket]",
@@ -476,6 +497,7 @@ massiveSpinorBoxes[mab, {i_, ii_, middle___, j_, jj_}, form_] :=
         Upper,
         form
     ];
+(* 为带动量插入的 msb 选择同手征链显示形式。 *)
 massiveSpinorBoxes[msb, {i_, ii_, middle___, j_, jj_}, form_] :=
     massiveChainBoxes[
         "[",
@@ -489,6 +511,7 @@ massiveSpinorBoxes[msb, {i_, ii_, middle___, j_, jj_}, form_] :=
         Lower,
         form
     ];
+(* 为 masb 选择混合手征链显示形式。 *)
 massiveSpinorBoxes[masb, {i_, ii_, middle___, j_, jj_}, form_] :=
     massiveMixedChainBoxes[
         "\[LeftAngleBracket]",
@@ -502,6 +525,7 @@ massiveSpinorBoxes[masb, {i_, ii_, middle___, j_, jj_}, form_] :=
         Lower,
         form
     ];
+(* 为 msab 选择混合手征链显示形式。 *)
 massiveSpinorBoxes[msab, {i_, ii_, middle___, j_, jj_}, form_] :=
     massiveMixedChainBoxes[
         "[",
@@ -515,9 +539,11 @@ massiveSpinorBoxes[msab, {i_, ii_, middle___, j_, jj_}, form_] :=
         Upper,
         form
     ];
+(* 对未知有质量对象退回原始函数调用显示。 *)
 massiveSpinorBoxes[head_, args_List, form_] :=
     rawCallBoxes[SymbolName[Unevaluated[head]], args, form];
 
+(* 为 mab 定义可解释的角括号显示格式。 *)
 mab /: MakeBoxes[
     mab[args___],
     form : (StandardForm | TraditionalForm)
@@ -526,6 +552,7 @@ mab /: MakeBoxes[
         massiveSpinorBoxes[mab, {args}, form],
         mab[args]
     ];
+(* 为 msb 定义可解释的方括号显示格式。 *)
 msb /: MakeBoxes[
     msb[args___],
     form : (StandardForm | TraditionalForm)
@@ -534,6 +561,7 @@ msb /: MakeBoxes[
         massiveSpinorBoxes[msb, {args}, form],
         msb[args]
     ];
+(* 为 masb 定义可解释的混合括号显示格式。 *)
 masb /: MakeBoxes[
     masb[args___],
     form : (StandardForm | TraditionalForm)
@@ -542,6 +570,7 @@ masb /: MakeBoxes[
         massiveSpinorBoxes[masb, {args}, form],
         masb[args]
     ];
+(* 为 msab 定义可解释的混合括号显示格式。 *)
 msab /: MakeBoxes[
     msab[args___],
     form : (StandardForm | TraditionalForm)
@@ -551,6 +580,7 @@ msab /: MakeBoxes[
         msab[args]
     ];
 
+(* 为 mra 定义右侧 angle ket 的显示格式。 *)
 mra /: MakeBoxes[
     mra[i_, ii_],
     form : (StandardForm | TraditionalForm)
@@ -565,6 +595,7 @@ mra /: MakeBoxes[
         ],
         mra[i, ii]
     ];
+(* 为 mla 定义左侧 angle bra 的显示格式。 *)
 mla /: MakeBoxes[
     mla[i_, ii_],
     form : (StandardForm | TraditionalForm)
@@ -579,6 +610,7 @@ mla /: MakeBoxes[
         ],
         mla[i, ii]
     ];
+(* 为 mrs 定义右侧 square ket 的显示格式。 *)
 mrs /: MakeBoxes[
     mrs[i_, ii_],
     form : (StandardForm | TraditionalForm)
@@ -593,6 +625,7 @@ mrs /: MakeBoxes[
         ],
         mrs[i, ii]
     ];
+(* 为 mls 定义左侧 square bra 的显示格式。 *)
 mls /: MakeBoxes[
     mls[i_, ii_],
     form : (StandardForm | TraditionalForm)
@@ -608,6 +641,7 @@ mls /: MakeBoxes[
         mls[i, ii]
     ];
 
+(* 将有质量 spinor 表达式转换为 TraditionalForm。 *)
 SpinorForm[expr_] := TraditionalForm[expr];
 
 End[];
