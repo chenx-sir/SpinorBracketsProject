@@ -489,7 +489,7 @@ $$
 
 ## 输出渲染
 
-两个包都为主要 spinor 对象定义了 MakeBoxes：
+三个包都为主要 spinor 对象定义了 MakeBoxes：
 
     ab[1, 2]
     sb[1, 2]
@@ -497,6 +497,30 @@ $$
     msb[1, 1, 2, 2]
 
 在 StandardForm 或 TraditionalForm 下会显示为相应的角括号、方括号、上下标和 bra-ket 结构。渲染只影响前端显示，不改变内部表达式。
+
+混合包的对象例如：
+
+    expr = {
+        MixedAngle[MasslessLeg[2], MassiveLeg[1, I]],
+        MixedSquare[MassiveLeg[4, J], MasslessLeg[3]],
+        MixedChain[
+            MasslessLeg[2],
+            {MassiveSpinorBrackets`mp[1] - MassiveSpinorBrackets`mp[4]},
+            MasslessLeg[3]
+        ]
+    };
+
+在 notebook 中会显示为：
+
+$$
+\left\langle 2\,1^I\right\rangle,
+\qquad
+[4_J\,3],
+\qquad
+\langle 2|p_1-p_4|3].
+$$
+
+也可以显式使用 `MixedSpinorForm[expr]` 输出 TraditionalForm。显示格式不会改变内部表达式。
 
 ## 测试
 

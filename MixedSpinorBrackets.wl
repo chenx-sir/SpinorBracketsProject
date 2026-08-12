@@ -3,7 +3,7 @@ BeginPackage["MixedSpinorBrackets`"];
 Unprotect[
     MasslessLeg, MassiveLeg, MixedAngle, MixedSquare, MixedChain,
     MixedSpinorExpand, MixedSpinorEvaluate, MixedKinematicsCheck,
-    ComptonAmplitude
+    ComptonAmplitude, MixedSpinorForm
 ];
 
 (* 自动加载同目录中的无质量和有质量 spinor 包。 *)
@@ -28,6 +28,7 @@ MixedSpinorExpand::usage = "MixedSpinorExpand[expr] 展开含有质量动量的�
 MixedSpinorEvaluate::usage = "MixedSpinorEvaluate[expr, data] 对混合、有质量和无质量旋量表达式进行数值求值。";
 MixedKinematicsCheck::usage = "MixedKinematicsCheck[data] 分别调用无质量和有质量包的运动学检查。";
 ComptonAmplitude::usage = "ComptonAmplitude[spin, legs, invariants, coupling, indices] 返回去除整体因子的 Compton 振幅。";
+MixedSpinorForm::usage = "MixedSpinorForm[expr] 使用 TraditionalForm 显示混合有质量/无质量 spinor 表达式。";
 
 Begin["`Private`"];
 
@@ -216,6 +217,183 @@ MixedKinematicsCheck[data : {_, _}] :=
         <|"Massless" -> data[[1]], "Massive" -> data[[2]]|>
     ];
 
+(*----------以下代码控制混合 spinor 对象的显示格式，与计算过程无关----------*)
+
+ClearAll[
+    mixedRawCallBoxes,
+    mixedInterpretedBoxes,
+    mixedIndexBox,
+    mixedLegBox,
+    mixedMiddleBoxes,
+    mixedBracketBoxes,
+    mixedChainBoxes,
+    mixedSpinorBoxes
+];
+
+mixedRawCallBoxes[head_String, args_List, form_] :=
+    RowBox[
+        {
+            head,
+            "[",
+            RowBox[Riffle[MakeBoxes[#, form] & /@ args, ","]],
+            "]"
+        }
+    ];
+
+SetAttributes[mixedInterpretedBoxes, HoldRest];
+mixedInterpretedBoxes[display_, expr_] :=
+    InterpretationBox[display, expr];
+
+mixedIndexBox[MasslessLeg[i_], _, form_] :=
+    MakeBoxes[i, form];
+mixedIndexBox[MassiveLeg[i_, ii_], position_, form_] :=
+    If[
+        position === Upper,
+        SuperscriptBox[MakeBoxes[i, form], MakeBoxes[ii, form]],
+        SubscriptBox[MakeBoxes[i, form], MakeBoxes[ii, form]]
+    ];
+mixedIndexBox[leg_, _, form_] := MakeBoxes[leg, form];
+
+mixedLegBox[MasslessLeg[i_], form_] :=
+    MakeBoxes[i, form];
+mixedLegBox[MassiveLeg[i_, ii_], form_] :=
+    SuperscriptBox[MakeBoxes[i, form], MakeBoxes[ii, form]];
+mixedLegBox[leg_, form_] := MakeBoxes[leg, form];
+
+mixedMiddleBoxes[MassiveSpinorBrackets`mp[i_], form_] :=
+    SubscriptBox["p", MakeBoxes[i, form]];
+mixedMiddleBoxes[SpinorBrackets`p[i_], form_] :=
+    SubscriptBox["p", MakeBoxes[i, form]];
+mixedMiddleBoxes[expr_Plus, form_] :=
+    Module[{terms = List @@ expr, first, rest},
+        first = First[terms];
+        rest = Rest[terms];
+        RowBox[
+            Join[
+                {mixedMiddleBoxes[first, form]},
+                Flatten[
+                    ({
+                        If[
+                            MatchQ[#, Times[-1, _]],
+                            {"-", mixedMiddleBoxes[-#, form]},
+                            {"+", mixedMiddleBoxes[#, form]}
+                        ]
+                    } & /@ rest)
+                ]
+            ]
+        ]
+    ];
+mixedMiddleBoxes[Times[-1, expr_], form_] :=
+    RowBox[{"-", mixedMiddleBoxes[expr, form]}];
+mixedMiddleBoxes[Times[coefficient_, expr_], form_] :=
+    RowBox[
+        {
+            MakeBoxes[coefficient, form],
+            mixedMiddleBoxes[expr, form]
+        }
+    ];
+mixedMiddleBoxes[expr_, form_] := MakeBoxes[expr, form];
+
+mixedBracketBoxes[left_, right_, first_, second_, position_, form_] :=
+    RowBox[
+        {
+            left,
+            mixedIndexBox[first, position, form],
+            "\[ThinSpace]",
+            mixedIndexBox[second, position, form],
+            right
+        }
+    ];
+
+mixedChainBoxes[left_, right_, first_, middle_List, last_, form_] :=
+    RowBox[
+        {
+            left,
+            mixedLegBox[first, form],
+            "|",
+            RowBox[
+                Riffle[
+                    mixedMiddleBoxes[#, form] & /@ middle,
+                    "\[CenterDot]"
+                ]
+            ],
+            "|",
+            mixedLegBox[last, form],
+            right
+        }
+    ];
+
+mixedSpinorBoxes[MixedAngle, {first_, second_}, form_] :=
+    mixedBracketBoxes[
+        "\[LeftAngleBracket]",
+        "\[RightAngleBracket]",
+        first,
+        second,
+        Upper,
+        form
+    ];
+mixedSpinorBoxes[MixedSquare, {first_, second_}, form_] :=
+    mixedBracketBoxes["[", "]", first, second, Lower, form];
+mixedSpinorBoxes[
+    MixedChain,
+    {MasslessLeg[first_], middle_List, MasslessLeg[last_]},
+    form_
+] :=
+    mixedChainBoxes[
+        "\[LeftAngleBracket]",
+        "]",
+        MasslessLeg[first],
+        middle,
+        MasslessLeg[last],
+        form
+    ];
+mixedSpinorBoxes[head_, args_List, form_] :=
+    mixedRawCallBoxes[SymbolName[Unevaluated[head]], args, form];
+
+MasslessLeg /: MakeBoxes[
+    MasslessLeg[i_],
+    form : (StandardForm | TraditionalForm)
+] :=
+    mixedInterpretedBoxes[MakeBoxes[i, form], MasslessLeg[i]];
+
+MassiveLeg /: MakeBoxes[
+    MassiveLeg[i_, ii_],
+    form : (StandardForm | TraditionalForm)
+] :=
+    mixedInterpretedBoxes[
+        mixedLegBox[MassiveLeg[i, ii], form],
+        MassiveLeg[i, ii]
+    ];
+
+MixedAngle /: MakeBoxes[
+    MixedAngle[args___],
+    form : (StandardForm | TraditionalForm)
+] :=
+    mixedInterpretedBoxes[
+        mixedSpinorBoxes[MixedAngle, {args}, form],
+        MixedAngle[args]
+    ];
+
+MixedSquare /: MakeBoxes[
+    MixedSquare[args___],
+    form : (StandardForm | TraditionalForm)
+] :=
+    mixedInterpretedBoxes[
+        mixedSpinorBoxes[MixedSquare, {args}, form],
+        MixedSquare[args]
+    ];
+
+MixedChain /: MakeBoxes[
+    MixedChain[args___],
+    form : (StandardForm | TraditionalForm)
+] :=
+    mixedInterpretedBoxes[
+        mixedSpinorBoxes[MixedChain, {args}, form],
+        MixedChain[args]
+    ];
+
+MixedSpinorForm[expr_] := TraditionalForm[expr];
+
 (* 构造 Compton 振幅中反复出现的 X 和 Y 结构。 *)
 ClearAll[comptonY, comptonX];
 comptonY[massiveIn_, photonMinus_, photonPlus_, massiveOut_, inIndex_, outIndex_] :=
@@ -271,5 +449,9 @@ ComptonAmplitude[
 
 End[];
 
-Protect[MasslessLeg, MassiveLeg, MixedAngle, MixedSquare, MixedChain, MixedSpinorExpand, MixedSpinorEvaluate, MixedKinematicsCheck, ComptonAmplitude];
+Protect[
+    MasslessLeg, MassiveLeg, MixedAngle, MixedSquare, MixedChain,
+    MixedSpinorExpand, MixedSpinorEvaluate, MixedKinematicsCheck,
+    ComptonAmplitude, MixedSpinorForm
+];
 EndPackage[];
