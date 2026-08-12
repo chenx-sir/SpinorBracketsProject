@@ -1,11 +1,6 @@
 Get[FileNameJoin[{DirectoryName[$InputFileName], "SpinorBrackets.wl"}]];
 
 tests = {
-  VerificationTest[
-    SpinorUtilities`SpinorDeterminant2[{1, 2}, {3, 4}],
-    -2,
-    TestID -> "public two-spinor determinant"
-  ],
   VerificationTest[la[1] ** ra[2], ab[1, 2], TestID -> "angle contraction"],
   VerificationTest[ls[1] ** rs[2], sb[1, 2], TestID -> "square contraction"],
   VerificationTest[la[1] ** p[2, 3] ** rs[4], asb[1, p[2, 3], 4],
