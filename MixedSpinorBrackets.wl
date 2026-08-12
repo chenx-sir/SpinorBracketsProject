@@ -7,16 +7,18 @@ Unprotect[
 ];
 
 (* 自动加载同目录中的无质量和有质量 spinor 包。 *)
-With[{packageDirectory = Quiet@Check[DirectoryName[$InputFileName], ""]},
-    If[DirectoryQ[packageDirectory],
+If[DirectoryQ[Quiet@Check[DirectoryName[$InputFileName], ""]],
         Block[
-            {$Path = DeleteDuplicates[Prepend[$Path, packageDirectory]]},
+            {$Path = DeleteDuplicates[
+                Prepend[$Path, Quiet@Check[DirectoryName[$InputFileName], ""]]
+            ]},
+            Needs["SpinorUtilities`"];
             Needs["SpinorBrackets`"];
             Needs["MassiveSpinorBrackets`"]
         ],
+        Needs["SpinorUtilities`"];
         Needs["SpinorBrackets`"];
         Needs["MassiveSpinorBrackets`"]
-    ]
 ];
 
 MasslessLeg::usage = "MasslessLeg[i] 表示编号为 i 的无质量外腿。";
@@ -36,8 +38,7 @@ ClearAll[masslessLegQ, massiveLegQ];
 masslessLegQ[expr_] := MatchQ[expr, MasslessLeg[_]];
 massiveLegQ[expr_] := MatchQ[expr, MassiveLeg[_, _]];
 
-ClearAll[determinant2, epsilon2];
-determinant2[u_List, v_List] /; Length[u] == Length[v] == 2 := Det[{u, v}];
+ClearAll[epsilon2];
 epsilon2 = {{0, 1}, {-1, 0}};
 
 (* 将列表形式和 Association 形式的旋量数据统一起来。 *)
@@ -70,13 +71,25 @@ delegateMassiveEvaluate[expr_, data_Association] :=
 (* 用二维行列式计算无质量与有质量旋量之间的混合括号。 *)
 ClearAll[mixedAngleValue, mixedSquareValue];
 mixedAngleValue[MasslessLeg[a_], MassiveLeg[i_, ii_], masslessData_Association, massiveData_Association] :=
-    determinant2[masslessSpinor[masslessData, "Lambda", a], massiveSpinor[massiveData, "Lambda", i, ii]];
+    SpinorUtilities`SpinorDeterminant2[
+        masslessSpinor[masslessData, "Lambda", a],
+        massiveSpinor[massiveData, "Lambda", i, ii]
+    ];
 mixedAngleValue[MassiveLeg[i_, ii_], MasslessLeg[a_], masslessData_Association, massiveData_Association] :=
-    determinant2[massiveSpinor[massiveData, "Lambda", i, ii], masslessSpinor[masslessData, "Lambda", a]];
+    SpinorUtilities`SpinorDeterminant2[
+        massiveSpinor[massiveData, "Lambda", i, ii],
+        masslessSpinor[masslessData, "Lambda", a]
+    ];
 mixedSquareValue[MassiveLeg[i_, ii_], MasslessLeg[a_], masslessData_Association, massiveData_Association] :=
-    determinant2[massiveSpinor[massiveData, "LambdaTilde", i, ii], masslessSpinor[masslessData, "LambdaTilde", a]];
+    SpinorUtilities`SpinorDeterminant2[
+        massiveSpinor[massiveData, "LambdaTilde", i, ii],
+        masslessSpinor[masslessData, "LambdaTilde", a]
+    ];
 mixedSquareValue[MasslessLeg[a_], MassiveLeg[i_, ii_], masslessData_Association, massiveData_Association] :=
-    determinant2[masslessSpinor[masslessData, "LambdaTilde", a], massiveSpinor[massiveData, "LambdaTilde", i, ii]];
+    SpinorUtilities`SpinorDeterminant2[
+        masslessSpinor[masslessData, "LambdaTilde", a],
+        massiveSpinor[massiveData, "LambdaTilde", i, ii]
+    ];
 
 (* 将混合链中的每个动量插入计算为二维动量矩阵。 *)
 ClearAll[mixedMatrixValue];

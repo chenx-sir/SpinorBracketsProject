@@ -2,6 +2,7 @@
 
 SpinorBracketsProject 是一组用于四维 spinor-helicity 计算的 Wolfram Language 包：
 
+- SpinorUtilities.wl：供其他包共同调用的二维旋量辅助函数。
 - SpinorBrackets.wl：无质量粒子的二旋量括号与 spinor 链。
 - MassiveSpinorBrackets.wl：有质量粒子的 massive spinor-helicity 括号与 spinor 链。
 
@@ -14,6 +15,8 @@ SpinorBracketsProject 是一组用于四维 spinor-helicity 计算的 Wolfram La
     project = "/path/to/SpinorBracketsProject";
     Get[FileNameJoin[{project, "SpinorBrackets.wl"}]];
     Get[FileNameJoin[{project, "MassiveSpinorBrackets.wl"}]];
+
+两个基础包会自动加载同目录下的 `SpinorUtilities.wl`。混合包还会自动加载这两个基础包，因此只需加载混合包即可使用完整功能。
 
 也可以将项目目录加入 Mathematica 的 $Path 后使用标准包加载方式。两个包的包名分别是 SpinorBrackets 和 MassiveSpinorBrackets。
 
@@ -78,6 +81,20 @@ $$
 所以 mm[i] 表示质量平方 m_i^2，而不是质量 m_i。
 
 ## 无质量包：SpinorBrackets
+
+## 公共辅助包：SpinorUtilities
+
+`SpinorUtilities.wl` 提供两个基础包共同使用的公开二维行列式函数：
+
+    SpinorUtilities`SpinorDeterminant2[{a, b}, {c, d}]
+
+返回：
+
+$$
+\det\begin{pmatrix}a&b\\c&d\end{pmatrix}=ad-bc.
+$$
+
+无质量包、有质量包和混合包都调用这个公共函数，而不再各自定义相同的二维行列式实现。
 
 ### 基本对象
 
@@ -535,6 +552,7 @@ $$
 ## 文件结构
 
     SpinorBracketsProject/
+    ├── SpinorUtilities.wl
     ├── SpinorBrackets.wl
     ├── MassiveSpinorBrackets.wl
     ├── MixedSpinorBrackets.wl

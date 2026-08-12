@@ -9,6 +9,16 @@ Unprotect[
     SpinorForm, Angle, Square
 ];
 
+If[DirectoryQ[Quiet@Check[DirectoryName[$InputFileName], ""]],
+        Block[
+            {$Path = DeleteDuplicates[
+                Prepend[$Path, Quiet@Check[DirectoryName[$InputFileName], ""]]
+            ]},
+            Needs["SpinorUtilities`"]
+        ],
+        Needs["SpinorUtilities`"]
+];
+
 ab::usage = "ab[i,j] 表示角括号 <i j>；ab[i,p[...],...,j] 表示 <i|P...|j> 型 angle-angle spinor 链。";
 sb::usage = "sb[i,j] 表示方括号 [i j]；sb[i,p[...],...,j] 表示 [i|P...|j] 型 square-square spinor 链。";
 asb::usage = "asb[i,p[...],...,j] 表示混合 spinor 链 <i|P...|j]。";
@@ -288,8 +298,7 @@ BCFWShift[expr_, {a_, b_}, z_: z] :=
         ]
     ];
 
-ClearAll[det2, outer2];
-det2[u_List, v_List] /; Length[u] == Length[v] == 2 := Det[{u, v}]; (*计算u,v横向排列的行列式*)
+ClearAll[outer2];
 outer2[u_List, v_List] /; Length[u] == Length[v] == 2 :=
     Outer[Times, u, v]; (*计算u,v的外积，得到一个2x2矩阵*)
 
@@ -308,10 +317,16 @@ SpinorEvaluate[expr_, {lambdas_List, lambdaTildes_List}] := Module[
     expanded /. {
         HoldPattern[ab[i_Integer, j_Integer]] /;
             1 <= i <= n && 1 <= j <= n :>
-          det2[lambdas[[i]], lambdas[[j]]],
+          SpinorUtilities`SpinorDeterminant2[
+              lambdas[[i]],
+              lambdas[[j]]
+          ],
         HoldPattern[sb[i_Integer, j_Integer]] /;
             1 <= i <= n && 1 <= j <= n :>
-          det2[lambdaTildes[[i]], lambdaTildes[[j]]],
+          SpinorUtilities`SpinorDeterminant2[
+              lambdaTildes[[i]],
+              lambdaTildes[[j]]
+          ],
         HoldPattern[p[labels___Integer]] /;
             And @@ Thread[1 <= {labels} <= n] :> (*thread是分配函数，就是把labels中的每个元素都应用到判断是否在1，n之间*)
           Total[outer2[lambdas[[#]], lambdaTildes[[#]]] & /@ {labels}],

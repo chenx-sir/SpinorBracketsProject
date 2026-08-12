@@ -6,6 +6,16 @@ Unprotect[
     MassiveKinematicsCheck, SpinorForm
 ];
 
+If[DirectoryQ[Quiet@Check[DirectoryName[$InputFileName], ""]],
+        Block[
+            {$Path = DeleteDuplicates[
+                Prepend[$Path, Quiet@Check[DirectoryName[$InputFileName], ""]]
+            ]},
+            Needs["SpinorUtilities`"]
+        ],
+        Needs["SpinorUtilities`"]
+];
+
 mab::usage = "mab[i,I,j,J] 表示 <i^I j^J>。";
 msb::usage = "msb[i,I,j,J] 表示 [i_I j_J]。";
 masb::usage = "masb[i,I,middle...,j,J] 表示 <i^I|...|j_J]。";
@@ -169,9 +179,7 @@ MassiveSpinorExpand[expr_] := Expand[
     }
 ] /. HoldPattern[NonCommutativeMultiply[___, 0, ___]] :> 0;
 
-ClearAll[det2, outer2, raise2, massiveMomentum];
-det2[u_List, v_List] /; Length[u] == Length[v] == 2 :=
-    Det[{u, v}];
+ClearAll[outer2, raise2, massiveMomentum];
 outer2[u_List, v_List] /; Length[u] == Length[v] == 2 :=
     Outer[Times, u, v];
 (* epsilon^12 = -1 raises a two-component Lorentz spinor index. *)
@@ -204,11 +212,17 @@ MassiveSpinorEvaluate[
         HoldPattern[mab[i_Integer, ii_Integer, j_Integer, jj_Integer]] /;
             1 <= i <= n && 1 <= j <= n &&
                 1 <= ii <= 2 && 1 <= jj <= 2 :>
-          det2[lambdas[[i, ii]], lambdas[[j, jj]]],
+          SpinorUtilities`SpinorDeterminant2[
+              lambdas[[i, ii]],
+              lambdas[[j, jj]]
+          ],
         HoldPattern[msb[i_Integer, ii_Integer, j_Integer, jj_Integer]] /;
             1 <= i <= n && 1 <= j <= n &&
                 1 <= ii <= 2 && 1 <= jj <= 2 :>
-          det2[lambdaTildes[[i, ii]], lambdaTildes[[j, jj]]],
+          SpinorUtilities`SpinorDeterminant2[
+              lambdaTildes[[i, ii]],
+              lambdaTildes[[j, jj]]
+          ],
         HoldPattern[mp[labels___Integer]] /;
             And @@ Thread[1 <= {labels} <= n] :>
           Total[
