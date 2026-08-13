@@ -208,7 +208,7 @@ SpinorKinematicsCheck[{lambdas, lambdaTildes}] 返回 ValidDimensions、OnShell�
     msb[1, 1, 2, 2]          (* 显示为 [1_1 2_2] *)
     masb[1, 1, mp[2], 3, 2] (* 显示为 <1^1|mp[2]|3_2] *)
 
-显示由 MakeBoxes 实现，并通过 InterpretationBox 保留内部表达式。SpinorForm[expr] 可以显式请求 TraditionalForm 显示。
+显示由 MakeBoxes 实现，并通过 InterpretationBox 保留内部表达式。SpinorForm[expr] 可以显式请求无质量 spinor 的 TraditionalForm 显示；MassiveSpinorForm[expr] 可以显式请求有质量 spinor 的 TraditionalForm 显示。
 
 注意：Wolfram Language 中大写 I 是内置虚数单位。实际使用 little-group 指标时建议使用 ii、I1 或整数 1,2：
 

@@ -3,7 +3,7 @@ BeginPackage["MassiveSpinorBrackets`"];
 Unprotect[
     mab, msb, masb, msab, mra, mla, mrs, mls, mp, mm,
     MassiveEpsilon, MassiveSpinorExpand, MassiveSpinorEvaluate,
-    MassiveKinematicsCheck, SpinorForm
+    MassiveKinematicsCheck, MassiveSpinorForm
 ];
 
 mab::usage = "mab[i,I,j,J] 表示 <i^I j^J>。";
@@ -18,7 +18,7 @@ MassiveEpsilon::usage = "MassiveEpsilon[I,J] 是 SU(2) little-group 的 epsilon 
 MassiveSpinorExpand::usage = "MassiveSpinorExpand[expr] 将有质量 spinor 链中的动量和展开为二旋量括号的乘积之和。";
 MassiveSpinorEvaluate::usage = "MassiveSpinorEvaluate[expr,{lambdas,lambdaTildes}] 使用给定的有质量二维 spinor 数据求值。";
 MassiveKinematicsCheck::usage = "MassiveKinematicsCheck[{lambdas,lambdaTildes}] 检查有质量 spinor 数据的维数、质量平方和总动量守恒；MassiveKinematicsCheck[{lambdas,lambdaTildes},masses] 另外检查给定质量的质壳条件。";
-SpinorForm::usage = "SpinorForm[expr] 使用 TraditionalForm 显示有质量 spinor 表达式。";
+MassiveSpinorForm::usage = "MassiveSpinorForm[expr] 使用 TraditionalForm 显示有质量 spinor 表达式。";
 
 Begin["`Private`"];
 
@@ -642,13 +642,13 @@ mls /: MakeBoxes[
     ];
 
 (* 将有质量 spinor 表达式转换为 TraditionalForm。 *)
-SpinorForm[expr_] := TraditionalForm[expr];
+MassiveSpinorForm[expr_] := TraditionalForm[expr];
 
 End[];
 
 Protect[
     mab, msb, masb, msab, mra, mla, mrs, mls, mp, mm,
     MassiveEpsilon, MassiveSpinorExpand, MassiveSpinorEvaluate,
-    MassiveKinematicsCheck, SpinorForm
+    MassiveKinematicsCheck, MassiveSpinorForm
 ];
 EndPackage[];

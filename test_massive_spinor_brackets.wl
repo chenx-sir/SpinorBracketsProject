@@ -272,7 +272,7 @@ tests = {
   ],
   VerificationTest[
     Head[
-      MassiveSpinorBrackets`SpinorForm[
+      MassiveSpinorBrackets`MassiveSpinorForm[
         MassiveSpinorBrackets`mab[1, 1, 2, 2]
       ]
     ],
