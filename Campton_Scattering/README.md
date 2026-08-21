@@ -27,7 +27,7 @@ wolframscript -file run_default_enumeration.wl
 - `all_local_compton_amplitudes.md`
 - `all_local_compton_amplitudes_summary.md`
 
-默认配置遍历：QED 中 $S=0,\frac{1}{2},1$ 的物质；二维示例表示下 Yang--Mills 中 $S=0,\frac{1}{2},1$ 的物质；以及 gravity 中 $S=0,\frac{1}{2},1,\frac{3}{2},2$ 的物质。相应地产生 14 个 QED、56 个 Yang--Mills 和 55 个 gravity 外态分量。
+默认配置遍历：QED 中 $ S=0,\frac{1}{2},1 $ 的物质；二维示例表示下 Yang--Mills 中 $ S=0,\frac{1}{2},1 $ 的物质；以及 gravity 中 $ S=0,\frac{1}{2},1,\frac{3}{2},2 $ 的物质。相应地产生 14 个 QED、56 个 Yang--Mills 和 55 个 gravity 外态分量。
 
 ## 振幅约定
 
@@ -38,7 +38,7 @@ $$
 =(\text{massiveIn},\text{bosonPlus},\text{bosonMinus},\text{massiveOut}).
 $$
 
-令 $s,u,m$ 为输入的 Mandelstam 变量和物质质量，并取
+令 $ s,u,m $ 为输入的 Mandelstam 变量和物质质量，并取
 
 $$
 t=2m^2-s-u.
@@ -59,7 +59,7 @@ N_{IJ}=\langle4^J3\rangle[1^I2]
 +\langle1^I3\rangle[4^J2].
 $$
 
-其中，QED 和 Yang--Mills 取 $h=1$，gravity 取 $h=2$；$I,J=1,2$ 是 massive SU(2) little-group 指标。对于自旋 $S$ 的物质，每条有质量外腿为对称 rank-$2S$ 张量，因此程序逐一列出 $(2S+1)^2$ 个独立的入射/出射指标分量。
+其中，QED 和 Yang--Mills 取 $ h=1 $，gravity 取 $ h=2 $； $ I,J=1,2 $ 是 massive SU(2) little-group 指标。对于自旋 $ S $ 的物质，每条有质量外腿为 rank 等于 $ 2S $ 的对称张量，因此程序逐一列出 $ (2S+1)^2 $ 个独立的入射/出射指标分量。
 
 三种理论的核为
 
@@ -77,7 +77,7 @@ $$
 K_{\mathrm{Gravity}}=-\frac{\kappa^2}{t}.
 $$
 
-电子、$\mu$ 子等具体粒子名称不是输入参数；在最小耦合近似下，它们由自旋 $S$、质量 $m$ 和电荷 $q$（Yang--Mills 情形还包括表示矩阵 $T^a,T^b$）确定。
+电子、 $ \mu $ 子等具体粒子名称不是输入参数；在最小耦合近似下，它们由自旋 $ S $、质量 $ m $ 和电荷 $ q $（Yang--Mills 情形还包括表示矩阵 $ T^a,T^b $）确定。
 
 ## 运行环境
 
