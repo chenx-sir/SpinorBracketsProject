@@ -3,7 +3,7 @@ BeginPackage["MixedSpinorBrackets`"];
 Unprotect[
     MasslessLeg, MassiveLeg, MixedAngle, MixedSquare, MixedChain,
     MixedSpinorExpand, MixedSpinorEvaluate, MixedKinematicsCheck,
-    ComptonAmplitude, MixedSpinorForm
+    ComptonAmplitude, UnifiedComptonAmplitude, MixedSpinorForm
 ];
 
 (* 自动加载同目录中的无质量和有质量 spinor 包。 *)
@@ -28,7 +28,16 @@ MixedSpinorExpand::usage = "MixedSpinorExpand[expr] 展开含有质量动量的�
 MixedSpinorEvaluate::usage = "MixedSpinorEvaluate[expr, data] 对混合、有质量和无质量旋量表达式进行数值求值。";
 MixedKinematicsCheck::usage = "MixedKinematicsCheck[data] 分别调用无质量和有质量包的运动学检查。";
 ComptonAmplitude::usage = "ComptonAmplitude[spin, legs, invariants, coupling, indices] 返回去除整体因子的 Compton 振幅。";
+UnifiedComptonAmplitude::usage = "UnifiedComptonAmplitude[theory, spin, legs, {s,u,m}, couplings, indices, internal] 构造 QED、Yang--Mills 或 gravity 的四点 minimal-coupling Compton 振幅。legs 按 {massiveIn,bosonPlus,bosonMinus,massiveOut} 排列；indices 为 {inIndices,outIndices}，每个列表含 2 spin 个 massive SU(2) 指标。Yang--Mills 的 internal 是 <|\"Ta\"->matrixA,\"Tb\"->matrixB,\"MatterIndices\"->{i,j}|>，省略 MatterIndices 时返回颜色矩阵。";
 MixedSpinorForm::usage = "MixedSpinorForm[expr] 使用 TraditionalForm 显示混合有质量/无质量 spinor 表达式。";
+
+UnifiedComptonAmplitude::theory = "理论 `1` 不受支持；可用值为 \"QED\"、\"YangMills\" 或 \"Gravity\"。";
+UnifiedComptonAmplitude::spin = "理论 `1` 的局域 minimal-coupling Compton 闭式不适用于 spin `2`。";
+UnifiedComptonAmplitude::legs = "legs 必须是四个腿标签组成的列表 {massiveIn,bosonPlus,bosonMinus,massiveOut}，但收到 `1`。";
+UnifiedComptonAmplitude::invariants = "invariants 必须是 {s,u,m}，但收到 `1`。";
+UnifiedComptonAmplitude::couplings = "理论 `1` 的 couplings 缺少所需键 `2`。";
+UnifiedComptonAmplitude::indices = "spin `1` 需要两组各含 `2` 个 massive little-group 指标，但收到 `3`。";
+UnifiedComptonAmplitude::internal = "YangMills 的 internal 必须给出同维方阵 \"Ta\"、\"Tb\"，并可选给出合法的 \"MatterIndices\"->{i,j}，但收到 `1`。";
 
 Begin["`Private`"];
 
@@ -504,11 +513,176 @@ ComptonAmplitude[
     inIndex2, outIndex2
 ] / ((s - mass^2) (u - mass^2));
 
+(* 以下构造采用论文中 (1^S,2^{+h},3^{-h},4^S) 的腿序。 *)
+ClearAll[
+    unifiedComptonX, unifiedComptonN, unifiedComptonIndexPairs,
+    unifiedComptonInvariants, unifiedComptonSpinQ, unifiedComptonKernel
+];
+
+(* 构造 X = <3|p1-p4|2]。 *)
+unifiedComptonX[massiveIn_, bosonPlus_, bosonMinus_, massiveOut_] :=
+    MixedChain[
+        MasslessLeg[bosonMinus],
+        {
+            MassiveSpinorBrackets`mp[massiveIn] -
+                MassiveSpinorBrackets`mp[massiveOut]
+        },
+        MasslessLeg[bosonPlus]
+    ];
+
+(* 构造带一对 massive little-group 指标的 N 因子。 *)
+unifiedComptonN[
+    massiveIn_, bosonPlus_, bosonMinus_, massiveOut_, inIndex_, outIndex_
+] :=
+    MixedAngle[MassiveLeg[massiveOut, outIndex], MasslessLeg[bosonMinus]] *
+        MixedSquare[MassiveLeg[massiveIn, inIndex], MasslessLeg[bosonPlus]] +
+    MixedAngle[MassiveLeg[massiveIn, inIndex], MasslessLeg[bosonMinus]] *
+        MixedSquare[MassiveLeg[massiveOut, outIndex], MasslessLeg[bosonPlus]];
+
+(* 将 {s,u,m} 规范为同时包含 t = 2 m^2-s-u 的列表。 *)
+unifiedComptonInvariants[{s_, u_, mass_}] :=
+    {s, u, mass, 2 mass^2 - s - u};
+unifiedComptonInvariants[_] := $Failed;
+
+(* 检查不同理论中闭式没有赝极点的 spin 范围。 *)
+unifiedComptonSpinQ["QED" | "YangMills", spin_] :=
+    MemberQ[{0, 1/2, 1}, spin];
+unifiedComptonSpinQ["Gravity", spin_] :=
+    MemberQ[{0, 1/2, 1, 3/2, 2}, spin];
+unifiedComptonSpinQ[_, _] := False;
+
+(* 生成 N^(2S) 中每一项所需的 massive 指标配对。 *)
+unifiedComptonIndexPairs[0, Automatic | None] := {};
+unifiedComptonIndexPairs[spin_, {inIndices_List, outIndices_List}] := Module[
+    {rank = 2 spin},
+    If[
+        IntegerQ[rank] && rank >= 0 &&
+            Length[inIndices] == rank && Length[outIndices] == rank,
+        Transpose[{inIndices, outIndices}],
+        $Failed
+    ]
+];
+unifiedComptonIndexPairs[_, _] := $Failed;
+
+(* 返回理论相关的耦合、颜色或引力核。 *)
+unifiedComptonKernel[
+    "QED", {s_, u_, mass_, t_}, couplings_Association, _
+] := Module[{electricCharge, charge},
+    electricCharge = Lookup[couplings, "e", Missing["e"]];
+    charge = Lookup[couplings, "Charge", Missing["Charge"]];
+    If[
+        MissingQ[electricCharge] || MissingQ[charge],
+        Message[UnifiedComptonAmplitude::couplings, "QED", "e, Charge"];
+        Return[$Failed]
+    ];
+    electricCharge^2 charge^2
+];
+unifiedComptonKernel[
+    "YangMills", {s_, u_, mass_, t_}, couplings_Association, internal_Association
+] := Module[{coupling, ta, tb, colorMatrix, matterIndices},
+    coupling = Lookup[couplings, "g", Missing["g"]];
+    ta = Lookup[internal, "Ta", Missing["Ta"]];
+    tb = Lookup[internal, "Tb", Missing["Tb"]];
+    If[
+        MissingQ[coupling],
+        Message[UnifiedComptonAmplitude::couplings, "YangMills", "g"];
+        Return[$Failed]
+    ];
+    If[
+        MissingQ[ta] || MissingQ[tb] || !MatrixQ[ta] || !MatrixQ[tb] ||
+            Dimensions[ta] != Dimensions[tb] ||
+            Length[Dimensions[ta]] != 2 || Dimensions[ta][[1]] != Dimensions[ta][[2]],
+        Message[UnifiedComptonAmplitude::internal, internal];
+        Return[$Failed]
+    ];
+    colorMatrix = coupling^2 *
+        ((u - mass^2) * Dot[ta, tb] + (s - mass^2) * Dot[tb, ta]) / t;
+    matterIndices = Lookup[internal, "MatterIndices", Automatic];
+    Which[
+        matterIndices === Automatic,
+            colorMatrix,
+        MatchQ[matterIndices, {_Integer, _Integer}] &&
+            And @@ MapThread[
+                Function[{index, dimension}, 1 <= index <= dimension],
+                {matterIndices, Dimensions[colorMatrix]}
+            ],
+            colorMatrix[[matterIndices[[1]], matterIndices[[2]]]],
+        True,
+            Message[UnifiedComptonAmplitude::internal, internal];
+            $Failed
+    ]
+];
+unifiedComptonKernel[
+    "YangMills", _, _, internal_
+] := (Message[UnifiedComptonAmplitude::internal, internal]; $Failed);
+unifiedComptonKernel[
+    "Gravity", {s_, u_, mass_, t_}, couplings_Association, _
+] := Module[{kappa},
+    kappa = Lookup[couplings, "kappa", Missing["kappa"]];
+    If[
+        MissingQ[kappa],
+        Message[UnifiedComptonAmplitude::couplings, "Gravity", "kappa"];
+        Return[$Failed]
+    ];
+    -kappa^2 / t
+];
+
+(* 构造 general-spin QED、Yang--Mills 或 gravity Compton 振幅。 *)
+UnifiedComptonAmplitude[
+    theory_String,
+    spin_,
+    legs_List,
+    invariants_,
+    couplings_Association,
+    indices_: Automatic,
+    internal_: Automatic
+] := Module[
+    {
+        massiveIn, bosonPlus, bosonMinus, massiveOut,
+        s, u, mass, t, h, x, indexPairs, invariantValues, nProduct, kernel
+    },
+    If[
+        !MemberQ[{"QED", "YangMills", "Gravity"}, theory],
+        Message[UnifiedComptonAmplitude::theory, theory];
+        Return[$Failed]
+    ];
+    If[!unifiedComptonSpinQ[theory, spin],
+        Message[UnifiedComptonAmplitude::spin, theory, spin];
+        Return[$Failed]
+    ];
+    If[Length[legs] != 4,
+        Message[UnifiedComptonAmplitude::legs, legs];
+        Return[$Failed]
+    ];
+    {massiveIn, bosonPlus, bosonMinus, massiveOut} = legs;
+    invariantValues = unifiedComptonInvariants[invariants];
+    If[invariantValues === $Failed,
+        Message[UnifiedComptonAmplitude::invariants, invariants];
+        Return[$Failed]
+    ];
+    {s, u, mass, t} = invariantValues;
+    indexPairs = unifiedComptonIndexPairs[spin, indices];
+    If[indexPairs === $Failed,
+        Message[UnifiedComptonAmplitude::indices, spin, 2 spin, indices];
+        Return[$Failed]
+    ];
+    h = If[theory === "Gravity", 2, 1];
+    x = unifiedComptonX[massiveIn, bosonPlus, bosonMinus, massiveOut];
+    nProduct = Times @@ (
+        unifiedComptonN[
+            massiveIn, bosonPlus, bosonMinus, massiveOut, #[[1]], #[[2]]
+        ] & /@ indexPairs
+    );
+    kernel = unifiedComptonKernel[theory, {s, u, mass, t}, couplings, internal];
+    If[kernel === $Failed, Return[$Failed]];
+    x^(2 h - 2 spin) * nProduct * kernel / ((s - mass^2) (u - mass^2))
+];
+
 End[];
 
 Protect[
     MasslessLeg, MassiveLeg, MixedAngle, MixedSquare, MixedChain,
     MixedSpinorExpand, MixedSpinorEvaluate, MixedKinematicsCheck,
-    ComptonAmplitude, MixedSpinorForm
+    ComptonAmplitude, UnifiedComptonAmplitude, MixedSpinorForm
 ];
 EndPackage[];

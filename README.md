@@ -487,6 +487,107 @@ $$
 
 它返回两个自旋 `1/2` 型 `Y` 因子的乘积。需要注意：`s`、`u`、`mass` 和 `g` 在这个接口中是外部传入的运动学变量和耦合常数；新包不会擅自根据动量数据推断它们之间的关系。
 
+### 统一 Compton 振幅
+
+`UnifiedComptonAmplitude` 实现了两条同质量 massive spin-`S` 外腿与两条相反 helicity 无质量外腿的 minimal-coupling Compton 闭式。接口的腿序遵循论文的约定：
+
+    {massiveIn, bosonPlus, bosonMinus, massiveOut}
+
+也就是 `UnifiedComptonAmplitude[..., {1, 2, 3, 4}, ...]` 表示
+
+$$
+(\mathbf{1}^{S},B_2^{+h},B_3^{-h},\mathbf{4}^{S}).
+$$
+
+共同的运动学核为
+
+$$
+X=\langle3|p_1-p_4|2],
+\qquad
+N=\langle\mathbf{4}3\rangle[\mathbf{1}2]
++\langle\mathbf{1}3\rangle[\mathbf{4}2].
+$$
+
+函数调用形式为：
+
+    UnifiedComptonAmplitude[
+        theory,
+        spin,
+        legs,
+        {s, u, mass},
+        couplings,
+        indices,
+        internal
+    ]
+
+其中 `t` 自动按 `t = 2 mass^2 - s - u` 推得。`indices` 是 `{inIndices, outIndices}`；两者必须各有 `2 spin` 个 little-group 指标。自旋零可使用 `Automatic`。
+
+#### QED
+
+QED 核为 $e^2q^2$，支持 $S=0,1/2,1$：
+
+    electronCompton = UnifiedComptonAmplitude[
+        "QED",
+        1/2,
+        {1, 2, 3, 4},
+        {s, u, me},
+        <|"e" -> e, "Charge" -> -1|>,
+        {{I}, {J}}
+    ];
+
+这表示 $e^-\gamma^+\gamma^-e^+$ 的全出射振幅分量。电子、μ 子等粒子名称并非接口参数；它们由 `spin`、`mass` 与 `Charge` 唯一指定最小 QED 耦合。
+
+#### Yang--Mills
+
+Yang--Mills 核为
+
+$$
+\frac{g^2}{t}
+\left[(u-m^2)T^aT^b+(s-m^2)T^bT^a\right].
+$$
+
+`internal` 需要给出两个实际的同维表示矩阵 `Ta`、`Tb`。可选的 `MatterIndices -> {i,j}` 返回一个指定颜色分量；省略它会返回完整颜色矩阵：
+
+    quarkGluonCompton = UnifiedComptonAmplitude[
+        "YangMills",
+        1/2,
+        {1, 2, 3, 4},
+        {s, u, mq},
+        <|"g" -> gs|>,
+        {{I}, {J}},
+        <|
+            "Ta" -> generatorA,
+            "Tb" -> generatorB,
+            "MatterIndices" -> {i, j}
+        |>
+    ];
+
+该形式支持 $S=0,1/2,1$，例如 colored scalar、夸克与带色 massive vector matter。
+
+#### Gravity
+
+gravi-Compton 核为 $-\kappa^2/t$，其中 $\kappa=M_{\rm Pl}^{-1}$：
+
+    gravitonCompton = UnifiedComptonAmplitude[
+        "Gravity",
+        3/2,
+        {1, 2, 3, 4},
+        {s, u, m32},
+        <|"kappa" -> kappa|>,
+        {{I1, I2, I3}, {J1, J2, J3}}
+    ];
+
+这一局域闭式支持 $S=0,1/2,1,3/2,2$。
+
+三个理论的结果都可用现有数值求值器计算：
+
+    MixedSpinorEvaluate[
+        UnifiedComptonAmplitude[...],
+        <|"Massless" -> masslessData, "Massive" -> massiveData|>
+    ]
+
+传入的 `{s,u,mass}` 必须和 spinor 数据满足相同的质壳条件与动量守恒。接口只实现 minimal-coupling 的 pole part；非最小多极矩耦合与四点 contact terms 需要另行加入。对 photon/gluon，闭式只在 $S\leq1$ 局域；对 graviton，闭式只在 $S\leq2$ 局域。
+
 ## 输出渲染
 
 三个包都为主要 spinor 对象定义了 MakeBoxes：
