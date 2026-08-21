@@ -7,6 +7,16 @@ SpinorBracketsProject 是一组用于四维 spinor-helicity 计算的 Wolfram La
 
 两个包都使用符号表达式表示 spinor bracket，并使用上值（UpValues）将相邻的开放旋量自动收缩为括号或 spinor 链。表达式在 Mathematica 中默认以 bra-ket 形式显示，但内部仍保留 ab[...]、mab[...] 等原始符号，便于继续进行规则替换和代数计算。
 
+## 四点 Compton 散射
+
+`Campton_Scattering/` 包含一个可独立运行的四点最小耦合 Compton 振幅遍历器，以及默认配置下已生成的结果。它枚举 QED、Yang--Mills 和 gravity 的允许 massive matter spin、SU(2) little-group 分量与 Yang--Mills 色分量，并同时导出可读 Markdown 和可计算的 Wolfram Language 结果。
+
+在项目根目录下运行：
+
+    wolframscript -file Campton_Scattering/run_default_enumeration.wl
+
+详细使用方法、适用范围和全部符号结果见 [Campton_Scattering/README.md](Campton_Scattering/README.md) 与 [Campton_Scattering/all_local_compton_amplitudes.md](Campton_Scattering/all_local_compton_amplitudes.md)。
+
 ## 安装与加载
 
 克隆仓库后，可以直接用文件路径加载：
